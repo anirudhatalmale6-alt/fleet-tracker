@@ -123,7 +123,7 @@
       <div class="stats-grid" id="dashStats"></div>
       <div class="card">
         <h3>Recent Trips</h3>
-        <table><thead><tr><th>Date</th><th>Truck</th><th>Route</th><th>Distance</th><th>Fuel</th><th>Customer</th></tr></thead>
+        <table><thead><tr><th>Date</th><th>Truck</th><th>Route</th><th>Distance</th><th>Charge</th><th>Net</th><th>Customer</th></tr></thead>
         <tbody id="dashTrips"></tbody></table>
       </div>
       <div class="card">
@@ -149,7 +149,7 @@
         <button class="btn btn-outline btn-sm" onclick="loadTrips()">Filter</button>
       </div>
       <div class="card">
-        <table><thead><tr><th>Date</th><th>Truck</th><th>From</th><th>To</th><th>Distance</th><th>Fuel</th><th>Cost</th><th>Customer</th><th>By</th><th></th></tr></thead>
+        <table><thead><tr><th>Date</th><th>Truck</th><th>From</th><th>To</th><th>Dist</th><th>Fuel</th><th>Charge</th><th>Expenses</th><th>Net</th><th>Customer</th><th></th></tr></thead>
         <tbody id="tripsTable"></tbody></table>
       </div>
     </div>
@@ -199,6 +199,10 @@
     <input type="number" id="tripFuel" step="0.1">
     <label>Fuel Cost (Naira)</label>
     <input type="number" id="tripCost" step="0.01">
+    <label>Charge to Customer (Naira)</label>
+    <input type="number" id="tripCharge" step="0.01" placeholder="Amount charged to customer">
+    <label>Other Expenses (Naira)</label>
+    <input type="number" id="tripExpenses" step="0.01" placeholder="Tolls, loading, etc.">
     <label>Customer</label>
     <input type="text" id="tripCustomer" placeholder="Customer name">
     <label>Notes</label>
@@ -336,13 +340,18 @@ async function loadDashboard() {
     <div class="stat-card"><div class="label">Total Trips</div><div class="value">${stats.total_trips}</div></div>
     <div class="stat-card"><div class="label">Total Distance</div><div class="value">${fmt(stats.total_km)} <span class="unit">km</span></div></div>
     <div class="stat-card"><div class="label">Total Fuel</div><div class="value">${fmt(stats.total_fuel)} <span class="unit">L</span></div></div>
-    <div class="stat-card"><div class="label">Fuel Cost</div><div class="value">${fmt(stats.total_fuel_cost)} <span class="unit">NGN</span></div></div>
+    <div class="stat-card"><div class="label">Revenue</div><div class="value">${fmt(stats.total_revenue)} <span class="unit">NGN</span></div></div>
+    <div class="stat-card"><div class="label">Total Expenses</div><div class="value">${fmt(stats.total_fuel_cost + stats.total_expenses)} <span class="unit">NGN</span></div></div>
+    <div class="stat-card" style="border-left:3px solid ${stats.net_profit >= 0 ? '#27ae60' : '#e74c3c'}"><div class="label">Net Profit</div><div class="value" style="color:${stats.net_profit >= 0 ? '#27ae60' : '#e74c3c'}">${fmt(stats.net_profit)} <span class="unit">NGN</span></div></div>
     <div class="stat-card"><div class="label">Efficiency</div><div class="value">${eff} <span class="unit">km/L</span></div></div>
   `;
 
   document.getElementById('dashTrips').innerHTML = trips.length === 0
-    ? '<tr><td colspan="6" class="empty">No trips yet</td></tr>'
-    : trips.map(t => `<tr><td>${t.trip_date}</td><td>${t.truck_name} (${t.truck_plate})</td><td>${t.origin} &rarr; ${t.destination}</td><td>${fmt(t.distance_km)} km</td><td>${fmt(t.fuel_litres)} L</td><td>${t.customer_name}</td></tr>`).join('');
+    ? '<tr><td colspan="7" class="empty">No trips yet</td></tr>'
+    : trips.map(t => {
+      const net = (t.customer_charge||0) - (t.fuel_cost||0) - (t.expenses||0);
+      return `<tr><td>${t.trip_date}</td><td>${t.truck_name} (${t.truck_plate})</td><td>${t.origin} &rarr; ${t.destination}</td><td>${fmt(t.distance_km)} km</td><td>${t.customer_charge ? fmt(t.customer_charge) : '-'}</td><td style="color:${net>=0?'#27ae60':'#e74c3c'};font-weight:600">${t.customer_charge ? fmt(net) : '-'}</td><td>${t.customer_name}</td></tr>`;
+    }).join('');
 
   document.getElementById('dashTrucks').innerHTML = trucks.length === 0
     ? '<tr><td colspan="5" class="empty">No trucks yet</td></tr>'
@@ -371,13 +380,20 @@ async function loadTrips() {
   const trips = await r.json();
   const isAdmin = currentUser.role === 'admin';
   document.getElementById('tripsTable').innerHTML = trips.length === 0
-    ? '<tr><td colspan="10" class="empty">No trips found</td></tr>'
-    : trips.map(t => `<tr>
+    ? '<tr><td colspan="11" class="empty">No trips found</td></tr>'
+    : trips.map(t => {
+      const totalExp = (t.fuel_cost||0) + (t.expenses||0);
+      const net = (t.customer_charge||0) - totalExp;
+      return `<tr>
         <td>${t.trip_date}</td><td>${t.truck_name}</td><td>${t.origin}</td><td>${t.destination}</td>
-        <td>${fmt(t.distance_km)}</td><td>${fmt(t.fuel_litres)}</td><td>${t.fuel_cost ? fmt(t.fuel_cost) : '-'}</td>
-        <td>${t.customer_name}</td><td>${t.logged_by_name}</td>
+        <td>${fmt(t.distance_km)}</td><td>${fmt(t.fuel_litres)}</td>
+        <td>${t.customer_charge ? fmt(t.customer_charge) : '-'}</td>
+        <td>${totalExp ? fmt(totalExp) : '-'}</td>
+        <td style="color:${net>=0?'#27ae60':'#e74c3c'};font-weight:600">${t.customer_charge ? fmt(net) : '-'}</td>
+        <td>${t.customer_name}</td>
         <td>${isAdmin ? '<button class="btn btn-danger btn-sm" onclick="deleteTrip('+t.id+')">Del</button>' : ''}</td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
 }
 
 async function loadTrucks() {
@@ -414,6 +430,8 @@ function openTripModal(trip) {
   document.getElementById('tripDistance').value = trip ? trip.distance_km : '';
   document.getElementById('tripFuel').value = trip ? trip.fuel_litres : '';
   document.getElementById('tripCost').value = trip ? trip.fuel_cost : '';
+  document.getElementById('tripCharge').value = trip ? trip.customer_charge : '';
+  document.getElementById('tripExpenses').value = trip ? trip.expenses : '';
   document.getElementById('tripCustomer').value = trip ? trip.customer_name : '';
   document.getElementById('tripNotes').value = trip ? trip.notes || '' : '';
   document.getElementById('tripModal').classList.add('open');
@@ -429,6 +447,8 @@ async function saveTrip() {
     distance_km: parseFloat(document.getElementById('tripDistance').value),
     fuel_litres: parseFloat(document.getElementById('tripFuel').value),
     fuel_cost: parseFloat(document.getElementById('tripCost').value) || 0,
+    customer_charge: parseFloat(document.getElementById('tripCharge').value) || 0,
+    expenses: parseFloat(document.getElementById('tripExpenses').value) || 0,
     customer_name: document.getElementById('tripCustomer').value,
     notes: document.getElementById('tripNotes').value
   };

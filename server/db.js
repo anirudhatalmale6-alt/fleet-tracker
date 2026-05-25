@@ -36,6 +36,8 @@ db.exec(`
     distance_km REAL NOT NULL,
     fuel_litres REAL NOT NULL,
     fuel_cost REAL DEFAULT 0,
+    customer_charge REAL DEFAULT 0,
+    expenses REAL DEFAULT 0,
     trip_date DATE NOT NULL,
     notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
