@@ -52,6 +52,7 @@ db.exec(`
     fuel_litres REAL NOT NULL,
     customer_charge REAL DEFAULT 0,
     trip_date DATE NOT NULL,
+    trip_number INTEGER DEFAULT 1,
     notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );

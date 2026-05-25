@@ -137,7 +137,7 @@
       </div>
       <div class="card">
         <h3>Recent Trips</h3>
-        <table><thead><tr><th>Date</th><th>Truck</th><th>Route</th><th>Distance</th><th>Charge</th><th>Expenses</th><th>Net</th><th>Customer</th></tr></thead>
+        <table><thead><tr><th>Date</th><th>Truck</th><th>Trip #</th><th>Route</th><th>Distance</th><th>Charge</th><th>Expenses</th><th>Net</th><th>Customer</th></tr></thead>
         <tbody id="dashTrips"></tbody></table>
       </div>
       <div class="card">
@@ -163,7 +163,7 @@
         <button class="btn btn-outline btn-sm" onclick="loadTrips()">Filter</button>
       </div>
       <div class="card">
-        <table><thead><tr><th>Date</th><th>Truck</th><th>From</th><th>To</th><th>Dist</th><th>Fuel</th><th>Charge</th><th>Expenses</th><th>Net</th><th>Customer</th><th></th></tr></thead>
+        <table><thead><tr><th>Date</th><th>Truck</th><th>Trip #</th><th>From</th><th>To</th><th>Dist</th><th>Fuel</th><th>Charge</th><th>Expenses</th><th>Net</th><th>Customer</th><th></th></tr></thead>
         <tbody id="tripsTable"></tbody></table>
       </div>
     </div>
@@ -394,9 +394,9 @@ async function loadDashboard() {
   }
 
   document.getElementById('dashTrips').innerHTML = trips.length === 0
-    ? '<tr><td colspan="8" class="empty">No trips yet</td></tr>'
+    ? '<tr><td colspan="9" class="empty">No trips yet</td></tr>'
     : trips.map(function(t) {
-      return '<tr><td>' + t.trip_date + '</td><td>' + t.truck_name + ' (' + t.truck_plate + ')</td><td>' + t.origin + ' &rarr; ' + t.destination + '</td><td>' + fmt(t.distance_km) + ' km</td><td>' + (t.customer_charge ? fmt(t.customer_charge) : '-') + '</td><td>' + (t.total_expenses ? fmt(t.total_expenses) : '-') + '</td><td style="color:' + (t.net_profit >= 0 ? '#27ae60' : '#e74c3c') + ';font-weight:600">' + (t.customer_charge ? fmt(t.net_profit) : '-') + '</td><td>' + t.customer_name + '</td></tr>';
+      return '<tr><td>' + t.trip_date + '</td><td>' + t.truck_name + ' (' + t.truck_plate + ')</td><td>' + (t.trip_number || 1) + '</td><td>' + t.origin + ' &rarr; ' + t.destination + '</td><td>' + fmt(t.distance_km) + ' km</td><td>' + (t.customer_charge ? fmt(t.customer_charge) : '-') + '</td><td>' + (t.total_expenses ? fmt(t.total_expenses) : '-') + '</td><td style="color:' + (t.net_profit >= 0 ? '#27ae60' : '#e74c3c') + ';font-weight:600">' + (t.customer_charge ? fmt(t.net_profit) : '-') + '</td><td>' + t.customer_name + '</td></tr>';
     }).join('');
 
   document.getElementById('dashTrucks').innerHTML = trucks.length === 0
@@ -428,10 +428,10 @@ async function loadTrips() {
   const trips = await r.json();
   const isAdmin = currentUser.role === 'admin';
   document.getElementById('tripsTable').innerHTML = trips.length === 0
-    ? '<tr><td colspan="11" class="empty">No trips found</td></tr>'
+    ? '<tr><td colspan="12" class="empty">No trips found</td></tr>'
     : trips.map(function(t) {
       return '<tr>' +
-        '<td>' + t.trip_date + '</td><td>' + t.truck_name + '</td><td>' + t.origin + '</td><td>' + t.destination + '</td>' +
+        '<td>' + t.trip_date + '</td><td>' + t.truck_name + '</td><td>' + (t.trip_number || 1) + '</td><td>' + t.origin + '</td><td>' + t.destination + '</td>' +
         '<td>' + fmt(t.distance_km) + '</td><td>' + fmt(t.fuel_litres) + '</td>' +
         '<td>' + (t.customer_charge ? fmt(t.customer_charge) : '-') + '</td>' +
         '<td>' + (t.total_expenses ? fmt(t.total_expenses) : '-') + '</td>' +

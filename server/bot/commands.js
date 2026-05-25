@@ -117,9 +117,12 @@ function handleLog(text, user) {
   }
   if (!tripDate) tripDate = new Date().toISOString().split('T')[0];
 
+  const lastTrip = db.prepare('SELECT COALESCE(MAX(trip_number), 0) as max_num FROM trips WHERE truck_id = ? AND trip_date = ?').get(truck.id, tripDate);
+  const tripNumber = lastTrip.max_num + 1;
+
   const result = db.prepare(
-    'INSERT INTO trips (truck_id, logged_by, customer_name, origin, destination, distance_km, fuel_litres, customer_charge, trip_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(truck.id, user.id, data.customer, data.origin, data.destination, data.distance, data.fuel, data.customer_charge || 0, tripDate, data.notes || null);
+    'INSERT INTO trips (truck_id, logged_by, customer_name, origin, destination, distance_km, fuel_litres, customer_charge, trip_date, trip_number, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(truck.id, user.id, data.customer, data.origin, data.destination, data.distance, data.fuel, data.customer_charge || 0, tripDate, tripNumber, data.notes || null);
 
   const tripId = result.lastInsertRowid;
   const ins = db.prepare('INSERT INTO trip_expenses (trip_id, category, amount) VALUES (?, ?, ?)');
@@ -133,7 +136,7 @@ function handleLog(text, user) {
 
   const netProfit = (data.customer_charge || 0) - totalExpenses;
 
-  let reply = 'Trip logged!\n\nTruck: ' + truck.name + ' (' + truck.plate + ')\nRoute: ' + data.origin + ' > ' + data.destination + ' (' + formatNumber(data.distance) + ' km)\nFuel: ' + formatNumber(data.fuel) + ' L';
+  let reply = 'Trip logged!\n\nTruck: ' + truck.name + ' (' + truck.plate + ') - Trip #' + tripNumber + '\nRoute: ' + data.origin + ' > ' + data.destination + ' (' + formatNumber(data.distance) + ' km)\nFuel: ' + formatNumber(data.fuel) + ' L';
   if (data.customer_charge) reply += '\nCharge: ' + formatNumber(data.customer_charge) + ' Naira';
   if (totalExpenses > 0) {
     reply += '\nExpenses: ' + formatNumber(totalExpenses) + ' Naira';

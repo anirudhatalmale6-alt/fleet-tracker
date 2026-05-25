@@ -65,13 +65,16 @@ router.post('/', authenticate, requireRole('admin', 'staff'), (req, res) => {
   const truck = db.prepare('SELECT * FROM trucks WHERE id = ? AND active = 1').get(truck_id);
   if (!truck) return res.status(400).json({ error: 'Invalid truck' });
 
+  const lastTrip = db.prepare('SELECT COALESCE(MAX(trip_number), 0) as max_num FROM trips WHERE truck_id = ? AND trip_date = ?').get(truck_id, trip_date);
+  const trip_number = lastTrip.max_num + 1;
+
   const result = db.prepare(`
-    INSERT INTO trips (truck_id, logged_by, customer_name, origin, destination, distance_km, fuel_litres, customer_charge, trip_date, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(truck_id, req.user.id, customer_name, origin, destination, distance_km, fuel_litres, customer_charge || 0, trip_date, notes || null);
+    INSERT INTO trips (truck_id, logged_by, customer_name, origin, destination, distance_km, fuel_litres, customer_charge, trip_date, trip_number, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(truck_id, req.user.id, customer_name, origin, destination, distance_km, fuel_litres, customer_charge || 0, trip_date, trip_number, notes || null);
 
   saveExpenses(result.lastInsertRowid, expenses);
-  res.json({ id: result.lastInsertRowid, truck_plate: truck.plate });
+  res.json({ id: result.lastInsertRowid, truck_plate: truck.plate, trip_number });
 });
 
 router.put('/:id', authenticate, requireRole('admin'), (req, res) => {
@@ -114,10 +117,10 @@ router.get('/export/csv', authenticate, (req, res) => {
 
   const trips = getTripsWithExpenses(db.prepare(sql).all(...params));
   const catHeaders = EXPENSE_CATEGORIES.map(c => c.label).join(',');
-  const header = `Date,Truck,From,To,Distance (km),Fuel (L),${catHeaders},Total Expenses (₦),Charge (₦),Net Profit (₦),Customer,Logged By\n`;
+  const header = `Date,Truck,Trip #,From,To,Distance (km),Fuel (L),${catHeaders},Total Expenses (₦),Charge (₦),Net Profit (₦),Customer,Logged By\n`;
   const csv = header + trips.map(r => {
     const catValues = EXPENSE_CATEGORIES.map(c => r.expenses[c.key] || 0).join(',');
-    return `${r.trip_date},"${r.plate}","${r.origin}","${r.destination}",${r.distance_km},${r.fuel_litres},${catValues},${r.total_expenses},${r.customer_charge || 0},${r.net_profit},"${r.customer_name}","${r.logged_by}"`;
+    return `${r.trip_date},"${r.plate}",${r.trip_number || 1},"${r.origin}","${r.destination}",${r.distance_km},${r.fuel_litres},${catValues},${r.total_expenses},${r.customer_charge || 0},${r.net_profit},"${r.customer_name}","${r.logged_by}"`;
   }).join('\n');
 
   res.setHeader('Content-Type', 'text/csv');
