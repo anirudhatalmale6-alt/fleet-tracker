@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: fleet-tracker
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server/index.js
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
