@@ -59,12 +59,18 @@
 
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; justify-content: center; align-items: center; }
     .modal-overlay.open { display: flex; }
-    .modal { background: #fff; border-radius: 12px; padding: 24px; width: 440px; max-height: 80vh; overflow-y: auto; }
+    .modal { background: #fff; border-radius: 12px; padding: 24px; width: 500px; max-height: 85vh; overflow-y: auto; }
     .modal h3 { margin-bottom: 16px; }
     .modal label { display: block; font-size: 13px; color: #555; margin-bottom: 4px; margin-top: 12px; }
     .modal input, .modal select, .modal textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
     .modal textarea { resize: vertical; height: 60px; }
     .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+    .expense-section { margin-top: 16px; border-top: 1px solid #eee; padding-top: 12px; }
+    .expense-section-title { font-weight: 600; font-size: 14px; color: #16213e; margin-bottom: 10px; }
+    .expense-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+    .expense-field label { font-size: 11px; color: #777; margin: 0 0 2px 0; }
+    .expense-field input { padding: 8px; font-size: 13px; }
 
     .badge { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
     .badge-admin { background: #ffeaa7; color: #d35400; }
@@ -75,6 +81,9 @@
     .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
     .filters input, .filters select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
 
+    .expense-breakdown { font-size: 12px; color: #666; }
+    .expense-breakdown span { display: inline-block; margin-right: 8px; }
+
     @media (max-width: 768px) {
       .sidebar { width: 100%; position: relative; padding: 10px 0; }
       .sidebar h2 { padding: 0 16px; margin-bottom: 10px; }
@@ -83,6 +92,7 @@
       .main { margin-left: 0; padding: 16px; }
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
       .modal { width: 95%; }
+      .expense-grid { grid-template-columns: 1fr; }
       .filters { flex-direction: column; }
       table { font-size: 12px; }
       th, td { padding: 8px 6px; }
@@ -121,14 +131,18 @@
     <div class="page active" id="pageDashboard">
       <div class="page-header"><h1>Dashboard</h1></div>
       <div class="stats-grid" id="dashStats"></div>
+      <div class="card" id="dashExpenseBreakdown" style="display:none">
+        <h3>Expense Breakdown</h3>
+        <div id="dashExpenseDetails"></div>
+      </div>
       <div class="card">
         <h3>Recent Trips</h3>
-        <table><thead><tr><th>Date</th><th>Truck</th><th>Route</th><th>Distance</th><th>Charge</th><th>Net</th><th>Customer</th></tr></thead>
+        <table><thead><tr><th>Date</th><th>Truck</th><th>Route</th><th>Distance</th><th>Charge</th><th>Expenses</th><th>Net</th><th>Customer</th></tr></thead>
         <tbody id="dashTrips"></tbody></table>
       </div>
       <div class="card">
         <h3>Trucks Overview</h3>
-        <table><thead><tr><th>Truck</th><th>Plate</th><th>Trips</th><th>Total km</th><th>Total Fuel</th></tr></thead>
+        <table><thead><tr><th>Truck</th><th>Plate</th><th>Trips</th><th>Total km</th><th>Revenue</th><th>Expenses</th><th>Net Profit</th></tr></thead>
         <tbody id="dashTrucks"></tbody></table>
       </div>
     </div>
@@ -161,7 +175,7 @@
         <button class="btn btn-primary" id="btnAddTruck" onclick="openTruckModal()">+ Add Truck</button>
       </div>
       <div class="card">
-        <table><thead><tr><th>Plate</th><th>Name</th><th>Trips</th><th>Total km</th><th>Total Fuel</th><th>Fuel Cost</th><th></th></tr></thead>
+        <table><thead><tr><th>Plate</th><th>Name</th><th>Trips</th><th>Total km</th><th>Total Fuel</th><th></th></tr></thead>
         <tbody id="trucksTable"></tbody></table>
       </div>
     </div>
@@ -197,14 +211,14 @@
     <input type="number" id="tripDistance" step="0.1">
     <label>Fuel (litres)</label>
     <input type="number" id="tripFuel" step="0.1">
-    <label>Fuel Cost (Naira)</label>
-    <input type="number" id="tripCost" step="0.01">
     <label>Charge to Customer (Naira)</label>
     <input type="number" id="tripCharge" step="0.01" placeholder="Amount charged to customer">
-    <label>Other Expenses (Naira)</label>
-    <input type="number" id="tripExpenses" step="0.01" placeholder="Tolls, loading, etc.">
     <label>Customer</label>
     <input type="text" id="tripCustomer" placeholder="Customer name">
+    <div class="expense-section">
+      <div class="expense-section-title">Expenses (Naira)</div>
+      <div class="expense-grid" id="expenseFields"></div>
+    </div>
     <label>Notes</label>
     <textarea id="tripNotes" placeholder="Optional notes"></textarea>
     <div class="modal-actions">
@@ -259,6 +273,7 @@
 <script>
 let token = localStorage.getItem('ft_token');
 let currentUser = null;
+let expenseCategories = [];
 
 const fmt = n => Number(n).toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 1 });
 
@@ -309,7 +324,24 @@ async function showApp() {
   document.getElementById('navUsers').style.display = currentUser.role === 'admin' ? 'block' : 'none';
   document.getElementById('btnAddTrip').style.display = ['admin','staff'].includes(currentUser.role) ? 'inline-flex' : 'none';
   document.getElementById('btnAddTruck').style.display = currentUser.role === 'admin' ? 'inline-flex' : 'none';
+
+  const catR = await api('/trips/categories');
+  if (catR && catR.ok) {
+    expenseCategories = await catR.json();
+    buildExpenseFields();
+  }
+
   loadDashboard();
+}
+
+function buildExpenseFields() {
+  const container = document.getElementById('expenseFields');
+  container.innerHTML = expenseCategories.map(c =>
+    '<div class="expense-field">' +
+      '<label>' + c.label + '</label>' +
+      '<input type="number" id="exp_' + c.key + '" step="0.01" placeholder="0">' +
+    '</div>'
+  ).join('');
 }
 
 document.querySelectorAll('.sidebar a[data-page]').forEach(a => {
@@ -335,27 +367,43 @@ async function loadDashboard() {
   const trips = await tripsR.json();
   const trucks = await trucksR.json();
 
-  const eff = stats.total_fuel > 0 ? (stats.total_km / stats.total_fuel).toFixed(1) : '0';
-  document.getElementById('dashStats').innerHTML = `
-    <div class="stat-card"><div class="label">Total Trips</div><div class="value">${stats.total_trips}</div></div>
-    <div class="stat-card"><div class="label">Total Distance</div><div class="value">${fmt(stats.total_km)} <span class="unit">km</span></div></div>
-    <div class="stat-card"><div class="label">Total Fuel</div><div class="value">${fmt(stats.total_fuel)} <span class="unit">L</span></div></div>
-    <div class="stat-card"><div class="label">Revenue</div><div class="value">${fmt(stats.total_revenue)} <span class="unit">NGN</span></div></div>
-    <div class="stat-card"><div class="label">Total Expenses</div><div class="value">${fmt(stats.total_fuel_cost + stats.total_expenses)} <span class="unit">NGN</span></div></div>
-    <div class="stat-card" style="border-left:3px solid ${stats.net_profit >= 0 ? '#27ae60' : '#e74c3c'}"><div class="label">Net Profit</div><div class="value" style="color:${stats.net_profit >= 0 ? '#27ae60' : '#e74c3c'}">${fmt(stats.net_profit)} <span class="unit">NGN</span></div></div>
-    <div class="stat-card"><div class="label">Efficiency</div><div class="value">${eff} <span class="unit">km/L</span></div></div>
-  `;
+  document.getElementById('dashStats').innerHTML =
+    '<div class="stat-card"><div class="label">Total Trips</div><div class="value">' + stats.total_trips + '</div></div>' +
+    '<div class="stat-card"><div class="label">Total Distance</div><div class="value">' + fmt(stats.total_km) + ' <span class="unit">km</span></div></div>' +
+    '<div class="stat-card"><div class="label">Total Fuel</div><div class="value">' + fmt(stats.total_fuel) + ' <span class="unit">L</span></div></div>' +
+    '<div class="stat-card"><div class="label">Revenue</div><div class="value">' + fmt(stats.total_revenue) + ' <span class="unit">NGN</span></div></div>' +
+    '<div class="stat-card"><div class="label">Total Expenses</div><div class="value">' + fmt(stats.total_expenses) + ' <span class="unit">NGN</span></div></div>' +
+    '<div class="stat-card" style="border-left:3px solid ' + (stats.net_profit >= 0 ? '#27ae60' : '#e74c3c') + '"><div class="label">Net Profit</div><div class="value" style="color:' + (stats.net_profit >= 0 ? '#27ae60' : '#e74c3c') + '">' + fmt(stats.net_profit) + ' <span class="unit">NGN</span></div></div>' +
+    '<div class="stat-card"><div class="label">Efficiency</div><div class="value">' + (stats.avg_efficiency || 0) + ' <span class="unit">km/L</span></div></div>';
+
+  var expCard = document.getElementById('dashExpenseBreakdown');
+  var expDetails = document.getElementById('dashExpenseDetails');
+  if (stats.expenses_by_category && Object.keys(stats.expenses_by_category).length > 0) {
+    expCard.style.display = 'block';
+    var catMap = {};
+    expenseCategories.forEach(function(c) { catMap[c.key] = c.label; });
+    var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;">';
+    for (var key in stats.expenses_by_category) {
+      var label = catMap[key] || key;
+      html += '<div style="padding:10px;background:#f8f9fa;border-radius:6px;"><div style="font-size:11px;color:#888;text-transform:uppercase;">' + label + '</div><div style="font-size:18px;font-weight:600;color:#16213e;">' + fmt(stats.expenses_by_category[key]) + ' <span style="font-size:12px;color:#666;">NGN</span></div></div>';
+    }
+    html += '</div>';
+    expDetails.innerHTML = html;
+  } else {
+    expCard.style.display = 'none';
+  }
 
   document.getElementById('dashTrips').innerHTML = trips.length === 0
-    ? '<tr><td colspan="7" class="empty">No trips yet</td></tr>'
-    : trips.map(t => {
-      const net = (t.customer_charge||0) - (t.fuel_cost||0) - (t.expenses||0);
-      return `<tr><td>${t.trip_date}</td><td>${t.truck_name} (${t.truck_plate})</td><td>${t.origin} &rarr; ${t.destination}</td><td>${fmt(t.distance_km)} km</td><td>${t.customer_charge ? fmt(t.customer_charge) : '-'}</td><td style="color:${net>=0?'#27ae60':'#e74c3c'};font-weight:600">${t.customer_charge ? fmt(net) : '-'}</td><td>${t.customer_name}</td></tr>`;
+    ? '<tr><td colspan="8" class="empty">No trips yet</td></tr>'
+    : trips.map(function(t) {
+      return '<tr><td>' + t.trip_date + '</td><td>' + t.truck_name + ' (' + t.truck_plate + ')</td><td>' + t.origin + ' &rarr; ' + t.destination + '</td><td>' + fmt(t.distance_km) + ' km</td><td>' + (t.customer_charge ? fmt(t.customer_charge) : '-') + '</td><td>' + (t.total_expenses ? fmt(t.total_expenses) : '-') + '</td><td style="color:' + (t.net_profit >= 0 ? '#27ae60' : '#e74c3c') + ';font-weight:600">' + (t.customer_charge ? fmt(t.net_profit) : '-') + '</td><td>' + t.customer_name + '</td></tr>';
     }).join('');
 
   document.getElementById('dashTrucks').innerHTML = trucks.length === 0
-    ? '<tr><td colspan="5" class="empty">No trucks yet</td></tr>'
-    : trucks.map(t => `<tr><td>${t.name}</td><td>${t.plate}</td><td>${t.trips}</td><td>${fmt(t.km)} km</td><td>${fmt(t.fuel)} L</td></tr>`).join('');
+    ? '<tr><td colspan="7" class="empty">No trucks yet</td></tr>'
+    : trucks.map(function(t) {
+      return '<tr><td>' + t.name + '</td><td>' + t.plate + '</td><td>' + t.trips + '</td><td>' + fmt(t.km) + ' km</td><td>' + fmt(t.revenue) + '</td><td>' + fmt(t.total_expenses) + '</td><td style="color:' + (t.net_profit >= 0 ? '#27ae60' : '#e74c3c') + ';font-weight:600">' + fmt(t.net_profit) + '</td></tr>';
+    }).join('');
 }
 
 async function loadTrips() {
@@ -364,13 +412,13 @@ async function loadTrips() {
   const trucks = await trucksR.json();
   const sel = document.getElementById('filterTruck');
   const tripSel = document.getElementById('tripTruck');
-  sel.innerHTML = '<option value="">All Trucks</option>' + trucks.map(t => `<option value="${t.id}">${t.name} (${t.plate})</option>`).join('');
-  tripSel.innerHTML = trucks.map(t => `<option value="${t.id}">${t.name} (${t.plate})</option>`).join('');
+  sel.innerHTML = '<option value="">All Trucks</option>' + trucks.map(function(t) { return '<option value="' + t.id + '">' + t.name + ' (' + t.plate + ')</option>'; }).join('');
+  tripSel.innerHTML = trucks.map(function(t) { return '<option value="' + t.id + '">' + t.name + ' (' + t.plate + ')</option>'; }).join('');
 
-  let url = '/trips?';
-  const tid = document.getElementById('filterTruck').value;
-  const fd = document.getElementById('filterFrom').value;
-  const td2 = document.getElementById('filterTo').value;
+  var url = '/trips?';
+  var tid = document.getElementById('filterTruck').value;
+  var fd = document.getElementById('filterFrom').value;
+  var td2 = document.getElementById('filterTo').value;
   if (tid) url += 'truck_id=' + tid + '&';
   if (fd) url += 'from_date=' + fd + '&';
   if (td2) url += 'to_date=' + td2 + '&';
@@ -381,18 +429,16 @@ async function loadTrips() {
   const isAdmin = currentUser.role === 'admin';
   document.getElementById('tripsTable').innerHTML = trips.length === 0
     ? '<tr><td colspan="11" class="empty">No trips found</td></tr>'
-    : trips.map(t => {
-      const totalExp = (t.fuel_cost||0) + (t.expenses||0);
-      const net = (t.customer_charge||0) - totalExp;
-      return `<tr>
-        <td>${t.trip_date}</td><td>${t.truck_name}</td><td>${t.origin}</td><td>${t.destination}</td>
-        <td>${fmt(t.distance_km)}</td><td>${fmt(t.fuel_litres)}</td>
-        <td>${t.customer_charge ? fmt(t.customer_charge) : '-'}</td>
-        <td>${totalExp ? fmt(totalExp) : '-'}</td>
-        <td style="color:${net>=0?'#27ae60':'#e74c3c'};font-weight:600">${t.customer_charge ? fmt(net) : '-'}</td>
-        <td>${t.customer_name}</td>
-        <td>${isAdmin ? '<button class="btn btn-danger btn-sm" onclick="deleteTrip('+t.id+')">Del</button>' : ''}</td>
-      </tr>`;
+    : trips.map(function(t) {
+      return '<tr>' +
+        '<td>' + t.trip_date + '</td><td>' + t.truck_name + '</td><td>' + t.origin + '</td><td>' + t.destination + '</td>' +
+        '<td>' + fmt(t.distance_km) + '</td><td>' + fmt(t.fuel_litres) + '</td>' +
+        '<td>' + (t.customer_charge ? fmt(t.customer_charge) : '-') + '</td>' +
+        '<td>' + (t.total_expenses ? fmt(t.total_expenses) : '-') + '</td>' +
+        '<td style="color:' + (t.net_profit >= 0 ? '#27ae60' : '#e74c3c') + ';font-weight:600">' + (t.customer_charge ? fmt(t.net_profit) : '-') + '</td>' +
+        '<td>' + t.customer_name + '</td>' +
+        '<td>' + (isAdmin ? '<button class="btn btn-danger btn-sm" onclick="deleteTrip(' + t.id + ')">Del</button>' : '') + '</td>' +
+      '</tr>';
     }).join('');
 }
 
@@ -402,23 +448,27 @@ async function loadTrucks() {
   const trucks = await r.json();
   const isAdmin = currentUser.role === 'admin';
   document.getElementById('trucksTable').innerHTML = trucks.length === 0
-    ? '<tr><td colspan="7" class="empty">No trucks yet</td></tr>'
-    : trucks.map(t => `<tr>
-        <td>${t.plate}</td><td>${t.name}</td><td>${t.total_trips}</td>
-        <td>${fmt(t.total_km)}</td><td>${fmt(t.total_fuel)}</td><td>${t.total_fuel_cost ? fmt(t.total_fuel_cost) + ' NGN' : '-'}</td>
-        <td>${isAdmin ? '<button class="btn btn-outline btn-sm" onclick="editTruck('+t.id+',\''+t.plate.replace(/'/g,"\\'")+'\',\''+t.name.replace(/'/g,"\\'")+'\')">Edit</button>' : ''}</td>
-      </tr>`).join('');
+    ? '<tr><td colspan="6" class="empty">No trucks yet</td></tr>'
+    : trucks.map(function(t) {
+      return '<tr>' +
+        '<td>' + t.plate + '</td><td>' + t.name + '</td><td>' + t.total_trips + '</td>' +
+        '<td>' + fmt(t.total_km) + '</td><td>' + fmt(t.total_fuel) + ' L</td>' +
+        '<td>' + (isAdmin ? '<button class="btn btn-outline btn-sm" onclick="editTruck(' + t.id + ',\'' + t.plate.replace(/'/g,"\\'") + '\',\'' + t.name.replace(/'/g,"\\'") + '\')">Edit</button>' : '') + '</td>' +
+      '</tr>';
+    }).join('');
 }
 
 async function loadUsers() {
   const r = await api('/users');
   if (!r) return;
   const users = await r.json();
-  document.getElementById('usersTable').innerHTML = users.map(u => `<tr>
-    <td>${u.name}</td><td>${u.username}</td><td>${u.phone || '-'}</td>
-    <td><span class="badge badge-${u.role}">${u.role}</span></td>
-    <td>${u.id !== currentUser.id ? '<button class="btn btn-danger btn-sm" onclick="deleteUser('+u.id+')">Del</button>' : ''}</td>
-  </tr>`).join('');
+  document.getElementById('usersTable').innerHTML = users.map(function(u) {
+    return '<tr>' +
+      '<td>' + u.name + '</td><td>' + u.username + '</td><td>' + (u.phone || '-') + '</td>' +
+      '<td><span class="badge badge-' + u.role + '">' + u.role + '</span></td>' +
+      '<td>' + (u.id !== currentUser.id ? '<button class="btn btn-danger btn-sm" onclick="deleteUser(' + u.id + ')">Del</button>' : '') + '</td>' +
+    '</tr>';
+  }).join('');
 }
 
 function openTripModal(trip) {
@@ -429,15 +479,26 @@ function openTripModal(trip) {
   document.getElementById('tripTo').value = trip ? trip.destination : '';
   document.getElementById('tripDistance').value = trip ? trip.distance_km : '';
   document.getElementById('tripFuel').value = trip ? trip.fuel_litres : '';
-  document.getElementById('tripCost').value = trip ? trip.fuel_cost : '';
   document.getElementById('tripCharge').value = trip ? trip.customer_charge : '';
-  document.getElementById('tripExpenses').value = trip ? trip.expenses : '';
   document.getElementById('tripCustomer').value = trip ? trip.customer_name : '';
   document.getElementById('tripNotes').value = trip ? trip.notes || '' : '';
+
+  expenseCategories.forEach(function(c) {
+    var el = document.getElementById('exp_' + c.key);
+    if (el) el.value = (trip && trip.expenses && trip.expenses[c.key]) ? trip.expenses[c.key] : '';
+  });
+
   document.getElementById('tripModal').classList.add('open');
 }
 
 async function saveTrip() {
+  var expenses = {};
+  expenseCategories.forEach(function(c) {
+    var el = document.getElementById('exp_' + c.key);
+    var val = el ? parseFloat(el.value) || 0 : 0;
+    if (val > 0) expenses[c.key] = val;
+  });
+
   const id = document.getElementById('tripId').value;
   const body = {
     truck_id: parseInt(document.getElementById('tripTruck').value),
@@ -446,11 +507,10 @@ async function saveTrip() {
     destination: document.getElementById('tripTo').value,
     distance_km: parseFloat(document.getElementById('tripDistance').value),
     fuel_litres: parseFloat(document.getElementById('tripFuel').value),
-    fuel_cost: parseFloat(document.getElementById('tripCost').value) || 0,
     customer_charge: parseFloat(document.getElementById('tripCharge').value) || 0,
-    expenses: parseFloat(document.getElementById('tripExpenses').value) || 0,
     customer_name: document.getElementById('tripCustomer').value,
-    notes: document.getElementById('tripNotes').value
+    notes: document.getElementById('tripNotes').value,
+    expenses: expenses
   };
   if (!body.origin || !body.destination || !body.distance_km || !body.fuel_litres || !body.customer_name || !body.trip_date) {
     alert('Please fill all required fields');
@@ -525,10 +585,10 @@ async function deleteUser(id) {
 }
 
 function exportCSV() {
-  let url = '/api/trips/export/csv?';
-  const tid = document.getElementById('filterTruck').value;
-  const fd = document.getElementById('filterFrom').value;
-  const td2 = document.getElementById('filterTo').value;
+  var url = '/api/trips/export/csv?';
+  var tid = document.getElementById('filterTruck').value;
+  var fd = document.getElementById('filterFrom').value;
+  var td2 = document.getElementById('filterTo').value;
   if (tid) url += 'truck_id=' + tid + '&';
   if (fd) url += 'from_date=' + fd + '&';
   if (td2) url += 'to_date=' + td2 + '&';
@@ -537,11 +597,11 @@ function exportCSV() {
 
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+document.querySelectorAll('.modal-overlay').forEach(function(m) {
+  m.addEventListener('click', function(e) { if (e.target === m) m.classList.remove('open'); });
 });
 
-document.getElementById('loginPass').addEventListener('keypress', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('loginPass').addEventListener('keypress', function(e) { if (e.key === 'Enter') doLogin(); });
 
 if (token) showApp();
 </script>

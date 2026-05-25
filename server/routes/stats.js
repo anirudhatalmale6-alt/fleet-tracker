@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../db');
+const { EXPENSE_CATEGORIES } = require('../db');
 const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
@@ -8,23 +9,37 @@ router.get('/summary', authenticate, (req, res) => {
   const { from_date, to_date } = req.query;
   let where = '';
   const params = [];
-  if (from_date) { where += ' AND trip_date >= ?'; params.push(from_date); }
-  if (to_date) { where += ' AND trip_date <= ?'; params.push(to_date); }
+  if (from_date) { where += ' AND tr.trip_date >= ?'; params.push(from_date); }
+  if (to_date) { where += ' AND tr.trip_date <= ?'; params.push(to_date); }
 
   const stats = db.prepare(`
     SELECT
       COUNT(*) as total_trips,
-      COALESCE(SUM(distance_km), 0) as total_km,
-      COALESCE(SUM(fuel_litres), 0) as total_fuel,
-      COALESCE(SUM(fuel_cost), 0) as total_fuel_cost,
-      COALESCE(SUM(customer_charge), 0) as total_revenue,
-      COALESCE(SUM(expenses), 0) as total_expenses,
-      COALESCE(SUM(customer_charge), 0) - COALESCE(SUM(fuel_cost), 0) - COALESCE(SUM(expenses), 0) as net_profit,
-      CASE WHEN SUM(fuel_litres) > 0 THEN ROUND(SUM(distance_km) / SUM(fuel_litres), 1) ELSE 0 END as avg_efficiency
-    FROM trips WHERE 1=1 ${where}
+      COALESCE(SUM(tr.distance_km), 0) as total_km,
+      COALESCE(SUM(tr.fuel_litres), 0) as total_fuel,
+      COALESCE(SUM(tr.customer_charge), 0) as total_revenue,
+      CASE WHEN SUM(tr.fuel_litres) > 0 THEN ROUND(SUM(tr.distance_km) / SUM(tr.fuel_litres), 1) ELSE 0 END as avg_efficiency
+    FROM trips tr WHERE 1=1 ${where}
   `).get(...params);
 
-  res.json(stats);
+  const expTotals = db.prepare(`
+    SELECT te.category, COALESCE(SUM(te.amount), 0) as total
+    FROM trip_expenses te
+    JOIN trips tr ON tr.id = te.trip_id
+    WHERE 1=1 ${where}
+    GROUP BY te.category
+  `).all(...params);
+
+  const by_category = {};
+  let total_expenses = 0;
+  expTotals.forEach(e => { by_category[e.category] = e.total; total_expenses += e.total; });
+
+  res.json({
+    ...stats,
+    total_expenses,
+    net_profit: stats.total_revenue - total_expenses,
+    expenses_by_category: by_category
+  });
 });
 
 router.get('/weekly', authenticate, (req, res) => {
@@ -50,20 +65,34 @@ router.get('/by-truck', authenticate, (req, res) => {
   if (from_date) { where += ' AND tr.trip_date >= ?'; params.push(from_date); }
   if (to_date) { where += ' AND tr.trip_date <= ?'; params.push(to_date); }
 
-  const data = db.prepare(`
+  const trucks = db.prepare(`
     SELECT t.id, t.plate, t.name,
       COUNT(tr.id) as trips,
       COALESCE(SUM(tr.distance_km), 0) as km,
       COALESCE(SUM(tr.fuel_litres), 0) as fuel,
-      COALESCE(SUM(tr.fuel_cost), 0) as fuel_cost,
-      COALESCE(SUM(tr.customer_charge), 0) as revenue,
-      COALESCE(SUM(tr.expenses), 0) as expenses
+      COALESCE(SUM(tr.customer_charge), 0) as revenue
     FROM trucks t
     LEFT JOIN trips tr ON tr.truck_id = t.id ${where ? 'AND' + where.substring(4) : ''}
     WHERE t.active = 1
     GROUP BY t.id
   `).all(...params);
-  res.json(data);
+
+  const truckExpenses = db.prepare(`
+    SELECT tr.truck_id, COALESCE(SUM(te.amount), 0) as total_expenses
+    FROM trip_expenses te
+    JOIN trips tr ON tr.id = te.trip_id
+    WHERE 1=1 ${where.replace(/tr\./g, 'tr.')}
+    GROUP BY tr.truck_id
+  `).all(...params);
+
+  const expMap = {};
+  truckExpenses.forEach(e => { expMap[e.truck_id] = e.total_expenses; });
+
+  res.json(trucks.map(t => ({
+    ...t,
+    total_expenses: expMap[t.id] || 0,
+    net_profit: t.revenue - (expMap[t.id] || 0)
+  })));
 });
 
 module.exports = router;

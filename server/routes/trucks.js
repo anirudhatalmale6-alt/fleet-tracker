@@ -9,8 +9,7 @@ router.get('/', authenticate, (req, res) => {
     SELECT t.*,
       COALESCE(COUNT(tr.id), 0) as total_trips,
       COALESCE(SUM(tr.distance_km), 0) as total_km,
-      COALESCE(SUM(tr.fuel_litres), 0) as total_fuel,
-      COALESCE(SUM(tr.fuel_cost), 0) as total_fuel_cost
+      COALESCE(SUM(tr.fuel_litres), 0) as total_fuel
     FROM trucks t
     LEFT JOIN trips tr ON tr.truck_id = t.id
     WHERE t.active = 1

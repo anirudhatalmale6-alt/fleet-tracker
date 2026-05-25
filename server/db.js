@@ -8,6 +8,21 @@ const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
+const EXPENSE_CATEGORIES = [
+  { key: 'diesel', label: 'Diesel' },
+  { key: 'haulage', label: 'Haulage' },
+  { key: 'maintenance', label: 'Maintenance' },
+  { key: 'car_wash', label: 'Car Wash' },
+  { key: 'lagos_govt', label: 'Lagos Govt' },
+  { key: 'fed_govt', label: 'Fed Govt' },
+  { key: 'police', label: 'Police' },
+  { key: 'community_gate', label: 'Community Gate Pass' },
+  { key: 'road_safety', label: 'Road Safety' },
+  { key: 'tickets', label: 'Tickets' },
+  { key: 'driver_motoboy', label: 'Driver/Motoboy' },
+  { key: 'misc', label: 'Misc' },
+];
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,12 +50,17 @@ db.exec(`
     destination TEXT NOT NULL,
     distance_km REAL NOT NULL,
     fuel_litres REAL NOT NULL,
-    fuel_cost REAL DEFAULT 0,
     customer_charge REAL DEFAULT 0,
-    expenses REAL DEFAULT 0,
     trip_date DATE NOT NULL,
     notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS trip_expenses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    category TEXT NOT NULL,
+    amount REAL NOT NULL DEFAULT 0
   );
 
   CREATE TABLE IF NOT EXISTS sessions (
@@ -63,3 +83,4 @@ if (truckCount.cnt === 0) {
 }
 
 module.exports = db;
+module.exports.EXPENSE_CATEGORIES = EXPENSE_CATEGORIES;
