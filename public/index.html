@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fleet Tracker</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: #1a1a2e; }
+
+    .login-page { display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .login-box { background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 360px; }
+    .login-box h1 { font-size: 24px; margin-bottom: 8px; color: #16213e; }
+    .login-box p { color: #666; margin-bottom: 24px; font-size: 14px; }
+    .login-box input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 12px; }
+    .login-box input:focus { outline: none; border-color: #0f3460; }
+    .login-box button { width: 100%; padding: 12px; background: #0f3460; color: #fff; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; }
+    .login-box button:hover { background: #16213e; }
+    .login-error { color: #e74c3c; font-size: 13px; margin-bottom: 12px; display: none; }
+
+    .app { display: none; }
+    .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 220px; background: #16213e; color: #fff; padding: 20px 0; }
+    .sidebar h2 { padding: 0 20px; font-size: 18px; margin-bottom: 30px; }
+    .sidebar h2 span { color: #e94560; }
+    .sidebar a { display: block; padding: 12px 20px; color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; }
+    .sidebar a:hover, .sidebar a.active { color: #fff; background: rgba(255,255,255,0.1); }
+    .sidebar .user-info { position: absolute; bottom: 20px; left: 20px; right: 20px; font-size: 12px; color: rgba(255,255,255,0.5); }
+    .sidebar .user-info strong { color: rgba(255,255,255,0.8); display: block; font-size: 13px; }
+    .sidebar .logout { color: #e94560; cursor: pointer; margin-top: 8px; display: inline-block; }
+
+    .main { margin-left: 220px; padding: 24px; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .page-header h1 { font-size: 22px; color: #16213e; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .stat-card .label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card .value { font-size: 28px; font-weight: 700; color: #16213e; margin-top: 4px; }
+    .stat-card .unit { font-size: 14px; color: #666; font-weight: 400; }
+
+    .card { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); padding: 20px; margin-bottom: 20px; }
+    .card h3 { font-size: 16px; margin-bottom: 16px; color: #16213e; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { text-align: left; padding: 10px 12px; border-bottom: 2px solid #eee; color: #888; font-weight: 600; font-size: 12px; text-transform: uppercase; }
+    td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+    tr:hover td { background: #fafafa; }
+
+    .btn { padding: 8px 16px; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-primary { background: #0f3460; color: #fff; }
+    .btn-primary:hover { background: #16213e; }
+    .btn-danger { background: #e74c3c; color: #fff; }
+    .btn-danger:hover { background: #c0392b; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    .btn-outline { background: transparent; border: 1px solid #ddd; color: #333; }
+    .btn-outline:hover { background: #f5f5f5; }
+
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; justify-content: center; align-items: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 12px; padding: 24px; width: 440px; max-height: 80vh; overflow-y: auto; }
+    .modal h3 { margin-bottom: 16px; }
+    .modal label { display: block; font-size: 13px; color: #555; margin-bottom: 4px; margin-top: 12px; }
+    .modal input, .modal select, .modal textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+    .modal textarea { resize: vertical; height: 60px; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+    .badge { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .badge-admin { background: #ffeaa7; color: #d35400; }
+    .badge-staff { background: #dfe6e9; color: #2d3436; }
+    .badge-viewer { background: #e8f5e9; color: #27ae60; }
+
+    .empty { text-align: center; padding: 40px; color: #999; }
+    .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+    .filters input, .filters select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
+
+    @media (max-width: 768px) {
+      .sidebar { width: 100%; position: relative; padding: 10px 0; }
+      .sidebar h2 { padding: 0 16px; margin-bottom: 10px; }
+      .sidebar a { display: inline-block; padding: 8px 12px; font-size: 13px; }
+      .sidebar .user-info { position: relative; bottom: auto; left: 16px; margin-top: 10px; }
+      .main { margin-left: 0; padding: 16px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .modal { width: 95%; }
+      .filters { flex-direction: column; }
+      table { font-size: 12px; }
+      th, td { padding: 8px 6px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-page" id="loginPage">
+  <div class="login-box">
+    <h1>Fleet Tracker</h1>
+    <p>Log in to manage your fleet</p>
+    <div class="login-error" id="loginError"></div>
+    <input type="text" id="loginUser" placeholder="Username" autocomplete="username">
+    <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password">
+    <button onclick="doLogin()">Log In</button>
+  </div>
+</div>
+
+<div class="app" id="app">
+  <nav class="sidebar">
+    <h2>Fleet<span>Tracker</span></h2>
+    <a href="#" data-page="dashboard" class="active">Dashboard</a>
+    <a href="#" data-page="trips">Trips</a>
+    <a href="#" data-page="trucks">Trucks</a>
+    <a href="#" data-page="users" id="navUsers">Users</a>
+    <div class="user-info">
+      <strong id="userName"></strong>
+      <span id="userRole"></span>
+      <br><span class="logout" onclick="doLogout()">Log out</span>
+    </div>
+  </nav>
+
+  <div class="main">
+    <!-- DASHBOARD -->
+    <div class="page active" id="pageDashboard">
+      <div class="page-header"><h1>Dashboard</h1></div>
+      <div class="stats-grid" id="dashStats"></div>
+      <div class="card">
+        <h3>Recent Trips</h3>
+        <table><thead><tr><th>Date</th><th>Truck</th><th>Route</th><th>Distance</th><th>Fuel</th><th>Customer</th></tr></thead>
+        <tbody id="dashTrips"></tbody></table>
+      </div>
+      <div class="card">
+        <h3>Trucks Overview</h3>
+        <table><thead><tr><th>Truck</th><th>Plate</th><th>Trips</th><th>Total km</th><th>Total Fuel</th></tr></thead>
+        <tbody id="dashTrucks"></tbody></table>
+      </div>
+    </div>
+
+    <!-- TRIPS -->
+    <div class="page" id="pageTrips">
+      <div class="page-header">
+        <h1>Trips</h1>
+        <div>
+          <button class="btn btn-outline" onclick="exportCSV()">Export CSV</button>
+          <button class="btn btn-primary" id="btnAddTrip" onclick="openTripModal()">+ Log Trip</button>
+        </div>
+      </div>
+      <div class="filters">
+        <select id="filterTruck"><option value="">All Trucks</option></select>
+        <input type="date" id="filterFrom" placeholder="From">
+        <input type="date" id="filterTo" placeholder="To">
+        <button class="btn btn-outline btn-sm" onclick="loadTrips()">Filter</button>
+      </div>
+      <div class="card">
+        <table><thead><tr><th>Date</th><th>Truck</th><th>From</th><th>To</th><th>Distance</th><th>Fuel</th><th>Cost</th><th>Customer</th><th>By</th><th></th></tr></thead>
+        <tbody id="tripsTable"></tbody></table>
+      </div>
+    </div>
+
+    <!-- TRUCKS -->
+    <div class="page" id="pageTrucks">
+      <div class="page-header">
+        <h1>Trucks</h1>
+        <button class="btn btn-primary" id="btnAddTruck" onclick="openTruckModal()">+ Add Truck</button>
+      </div>
+      <div class="card">
+        <table><thead><tr><th>Plate</th><th>Name</th><th>Trips</th><th>Total km</th><th>Total Fuel</th><th>Fuel Cost</th><th></th></tr></thead>
+        <tbody id="trucksTable"></tbody></table>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="page" id="pageUsers">
+      <div class="page-header">
+        <h1>Users</h1>
+        <button class="btn btn-primary" onclick="openUserModal()">+ Add User</button>
+      </div>
+      <div class="card">
+        <table><thead><tr><th>Name</th><th>Username</th><th>Phone</th><th>Role</th><th></th></tr></thead>
+        <tbody id="usersTable"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TRIP MODAL -->
+<div class="modal-overlay" id="tripModal">
+  <div class="modal">
+    <h3 id="tripModalTitle">Log Trip</h3>
+    <input type="hidden" id="tripId">
+    <label>Truck</label>
+    <select id="tripTruck"></select>
+    <label>Date</label>
+    <input type="date" id="tripDate">
+    <label>From</label>
+    <input type="text" id="tripFrom" placeholder="Origin location">
+    <label>To</label>
+    <input type="text" id="tripTo" placeholder="Destination location">
+    <label>Distance (km)</label>
+    <input type="number" id="tripDistance" step="0.1">
+    <label>Fuel (litres)</label>
+    <input type="number" id="tripFuel" step="0.1">
+    <label>Fuel Cost (Naira)</label>
+    <input type="number" id="tripCost" step="0.01">
+    <label>Customer</label>
+    <input type="text" id="tripCustomer" placeholder="Customer name">
+    <label>Notes</label>
+    <textarea id="tripNotes" placeholder="Optional notes"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('tripModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTrip()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- TRUCK MODAL -->
+<div class="modal-overlay" id="truckModal">
+  <div class="modal">
+    <h3 id="truckModalTitle">Add Truck</h3>
+    <input type="hidden" id="truckEditId">
+    <label>Plate Number</label>
+    <input type="text" id="truckPlate" placeholder="e.g. ABC-123XY">
+    <label>Name</label>
+    <input type="text" id="truckName" placeholder="e.g. DAF Truck">
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('truckModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTruck()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- USER MODAL -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal">
+    <h3 id="userModalTitle">Add User</h3>
+    <input type="hidden" id="userEditId">
+    <label>Full Name</label>
+    <input type="text" id="userFullName" placeholder="Full name">
+    <label>Username</label>
+    <input type="text" id="userUsername" placeholder="Login username">
+    <label>Phone (WhatsApp)</label>
+    <input type="text" id="userPhone" placeholder="e.g. 2348012345678">
+    <label>Role</label>
+    <select id="userRoleSelect">
+      <option value="staff">Staff</option>
+      <option value="viewer">Viewer</option>
+      <option value="admin">Admin</option>
+    </select>
+    <label>Password</label>
+    <input type="password" id="userPassword" placeholder="Password">
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('userModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUser()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let token = localStorage.getItem('ft_token');
+let currentUser = null;
+
+const fmt = n => Number(n).toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 1 });
+
+async function api(url, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  const r = await fetch('/api' + url, { ...opts, headers });
+  if (r.status === 401) { doLogout(); return null; }
+  return r;
+}
+
+async function doLogin() {
+  const username = document.getElementById('loginUser').value;
+  const password = document.getElementById('loginPass').value;
+  const r = await api('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
+  if (!r) return;
+  const data = await r.json();
+  if (r.ok) {
+    token = data.token;
+    localStorage.setItem('ft_token', token);
+    currentUser = data.user;
+    showApp();
+  } else {
+    const el = document.getElementById('loginError');
+    el.textContent = data.error || 'Login failed';
+    el.style.display = 'block';
+  }
+}
+
+function doLogout() {
+  token = null;
+  currentUser = null;
+  localStorage.removeItem('ft_token');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginPage').style.display = 'flex';
+}
+
+async function showApp() {
+  if (!currentUser) {
+    const r = await api('/auth/me');
+    if (!r || !r.ok) { doLogout(); return; }
+    currentUser = await r.json();
+  }
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('userName').textContent = currentUser.name;
+  document.getElementById('userRole').textContent = currentUser.role;
+  document.getElementById('navUsers').style.display = currentUser.role === 'admin' ? 'block' : 'none';
+  document.getElementById('btnAddTrip').style.display = ['admin','staff'].includes(currentUser.role) ? 'inline-flex' : 'none';
+  document.getElementById('btnAddTruck').style.display = currentUser.role === 'admin' ? 'inline-flex' : 'none';
+  loadDashboard();
+}
+
+document.querySelectorAll('.sidebar a[data-page]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    document.querySelectorAll('.sidebar a').forEach(x => x.classList.remove('active'));
+    a.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page' + a.dataset.page.charAt(0).toUpperCase() + a.dataset.page.slice(1)).classList.add('active');
+    if (a.dataset.page === 'dashboard') loadDashboard();
+    if (a.dataset.page === 'trips') loadTrips();
+    if (a.dataset.page === 'trucks') loadTrucks();
+    if (a.dataset.page === 'users') loadUsers();
+  });
+});
+
+async function loadDashboard() {
+  const [statsR, tripsR, trucksR] = await Promise.all([
+    api('/stats/summary'), api('/trips?limit=10'), api('/stats/by-truck')
+  ]);
+  if (!statsR) return;
+  const stats = await statsR.json();
+  const trips = await tripsR.json();
+  const trucks = await trucksR.json();
+
+  const eff = stats.total_fuel > 0 ? (stats.total_km / stats.total_fuel).toFixed(1) : '0';
+  document.getElementById('dashStats').innerHTML = `
+    <div class="stat-card"><div class="label">Total Trips</div><div class="value">${stats.total_trips}</div></div>
+    <div class="stat-card"><div class="label">Total Distance</div><div class="value">${fmt(stats.total_km)} <span class="unit">km</span></div></div>
+    <div class="stat-card"><div class="label">Total Fuel</div><div class="value">${fmt(stats.total_fuel)} <span class="unit">L</span></div></div>
+    <div class="stat-card"><div class="label">Fuel Cost</div><div class="value">${fmt(stats.total_fuel_cost)} <span class="unit">NGN</span></div></div>
+    <div class="stat-card"><div class="label">Efficiency</div><div class="value">${eff} <span class="unit">km/L</span></div></div>
+  `;
+
+  document.getElementById('dashTrips').innerHTML = trips.length === 0
+    ? '<tr><td colspan="6" class="empty">No trips yet</td></tr>'
+    : trips.map(t => `<tr><td>${t.trip_date}</td><td>${t.truck_name} (${t.truck_plate})</td><td>${t.origin} &rarr; ${t.destination}</td><td>${fmt(t.distance_km)} km</td><td>${fmt(t.fuel_litres)} L</td><td>${t.customer_name}</td></tr>`).join('');
+
+  document.getElementById('dashTrucks').innerHTML = trucks.length === 0
+    ? '<tr><td colspan="5" class="empty">No trucks yet</td></tr>'
+    : trucks.map(t => `<tr><td>${t.name}</td><td>${t.plate}</td><td>${t.trips}</td><td>${fmt(t.km)} km</td><td>${fmt(t.fuel)} L</td></tr>`).join('');
+}
+
+async function loadTrips() {
+  const trucksR = await api('/trucks');
+  if (!trucksR) return;
+  const trucks = await trucksR.json();
+  const sel = document.getElementById('filterTruck');
+  const tripSel = document.getElementById('tripTruck');
+  sel.innerHTML = '<option value="">All Trucks</option>' + trucks.map(t => `<option value="${t.id}">${t.name} (${t.plate})</option>`).join('');
+  tripSel.innerHTML = trucks.map(t => `<option value="${t.id}">${t.name} (${t.plate})</option>`).join('');
+
+  let url = '/trips?';
+  const tid = document.getElementById('filterTruck').value;
+  const fd = document.getElementById('filterFrom').value;
+  const td2 = document.getElementById('filterTo').value;
+  if (tid) url += 'truck_id=' + tid + '&';
+  if (fd) url += 'from_date=' + fd + '&';
+  if (td2) url += 'to_date=' + td2 + '&';
+
+  const r = await api(url);
+  if (!r) return;
+  const trips = await r.json();
+  const isAdmin = currentUser.role === 'admin';
+  document.getElementById('tripsTable').innerHTML = trips.length === 0
+    ? '<tr><td colspan="10" class="empty">No trips found</td></tr>'
+    : trips.map(t => `<tr>
+        <td>${t.trip_date}</td><td>${t.truck_name}</td><td>${t.origin}</td><td>${t.destination}</td>
+        <td>${fmt(t.distance_km)}</td><td>${fmt(t.fuel_litres)}</td><td>${t.fuel_cost ? fmt(t.fuel_cost) : '-'}</td>
+        <td>${t.customer_name}</td><td>${t.logged_by_name}</td>
+        <td>${isAdmin ? '<button class="btn btn-danger btn-sm" onclick="deleteTrip('+t.id+')">Del</button>' : ''}</td>
+      </tr>`).join('');
+}
+
+async function loadTrucks() {
+  const r = await api('/trucks');
+  if (!r) return;
+  const trucks = await r.json();
+  const isAdmin = currentUser.role === 'admin';
+  document.getElementById('trucksTable').innerHTML = trucks.length === 0
+    ? '<tr><td colspan="7" class="empty">No trucks yet</td></tr>'
+    : trucks.map(t => `<tr>
+        <td>${t.plate}</td><td>${t.name}</td><td>${t.total_trips}</td>
+        <td>${fmt(t.total_km)}</td><td>${fmt(t.total_fuel)}</td><td>${t.total_fuel_cost ? fmt(t.total_fuel_cost) + ' NGN' : '-'}</td>
+        <td>${isAdmin ? '<button class="btn btn-outline btn-sm" onclick="editTruck('+t.id+',\''+t.plate.replace(/'/g,"\\'")+'\',\''+t.name.replace(/'/g,"\\'")+'\')">Edit</button>' : ''}</td>
+      </tr>`).join('');
+}
+
+async function loadUsers() {
+  const r = await api('/users');
+  if (!r) return;
+  const users = await r.json();
+  document.getElementById('usersTable').innerHTML = users.map(u => `<tr>
+    <td>${u.name}</td><td>${u.username}</td><td>${u.phone || '-'}</td>
+    <td><span class="badge badge-${u.role}">${u.role}</span></td>
+    <td>${u.id !== currentUser.id ? '<button class="btn btn-danger btn-sm" onclick="deleteUser('+u.id+')">Del</button>' : ''}</td>
+  </tr>`).join('');
+}
+
+function openTripModal(trip) {
+  document.getElementById('tripModalTitle').textContent = trip ? 'Edit Trip' : 'Log Trip';
+  document.getElementById('tripId').value = trip ? trip.id : '';
+  document.getElementById('tripDate').value = trip ? trip.trip_date : new Date().toISOString().split('T')[0];
+  document.getElementById('tripFrom').value = trip ? trip.origin : '';
+  document.getElementById('tripTo').value = trip ? trip.destination : '';
+  document.getElementById('tripDistance').value = trip ? trip.distance_km : '';
+  document.getElementById('tripFuel').value = trip ? trip.fuel_litres : '';
+  document.getElementById('tripCost').value = trip ? trip.fuel_cost : '';
+  document.getElementById('tripCustomer').value = trip ? trip.customer_name : '';
+  document.getElementById('tripNotes').value = trip ? trip.notes || '' : '';
+  document.getElementById('tripModal').classList.add('open');
+}
+
+async function saveTrip() {
+  const id = document.getElementById('tripId').value;
+  const body = {
+    truck_id: parseInt(document.getElementById('tripTruck').value),
+    trip_date: document.getElementById('tripDate').value,
+    origin: document.getElementById('tripFrom').value,
+    destination: document.getElementById('tripTo').value,
+    distance_km: parseFloat(document.getElementById('tripDistance').value),
+    fuel_litres: parseFloat(document.getElementById('tripFuel').value),
+    fuel_cost: parseFloat(document.getElementById('tripCost').value) || 0,
+    customer_name: document.getElementById('tripCustomer').value,
+    notes: document.getElementById('tripNotes').value
+  };
+  if (!body.origin || !body.destination || !body.distance_km || !body.fuel_litres || !body.customer_name || !body.trip_date) {
+    alert('Please fill all required fields');
+    return;
+  }
+  const r = await api('/trips' + (id ? '/' + id : ''), { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
+  if (r && r.ok) { closeModal('tripModal'); loadTrips(); loadDashboard(); }
+  else { const d = await r.json(); alert(d.error || 'Error saving trip'); }
+}
+
+async function deleteTrip(id) {
+  if (!confirm('Delete this trip?')) return;
+  await api('/trips/' + id, { method: 'DELETE' });
+  loadTrips(); loadDashboard();
+}
+
+function openTruckModal() {
+  document.getElementById('truckModalTitle').textContent = 'Add Truck';
+  document.getElementById('truckEditId').value = '';
+  document.getElementById('truckPlate').value = '';
+  document.getElementById('truckName').value = '';
+  document.getElementById('truckModal').classList.add('open');
+}
+
+function editTruck(id, plate, name) {
+  document.getElementById('truckModalTitle').textContent = 'Edit Truck';
+  document.getElementById('truckEditId').value = id;
+  document.getElementById('truckPlate').value = plate;
+  document.getElementById('truckName').value = name;
+  document.getElementById('truckModal').classList.add('open');
+}
+
+async function saveTruck() {
+  const id = document.getElementById('truckEditId').value;
+  const body = { plate: document.getElementById('truckPlate').value, name: document.getElementById('truckName').value };
+  if (!body.plate) { alert('Plate number is required'); return; }
+  const r = await api('/trucks' + (id ? '/' + id : ''), { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
+  if (r && r.ok) { closeModal('truckModal'); loadTrucks(); }
+  else { const d = await r.json(); alert(d.error || 'Error'); }
+}
+
+function openUserModal() {
+  document.getElementById('userModalTitle').textContent = 'Add User';
+  document.getElementById('userEditId').value = '';
+  document.getElementById('userFullName').value = '';
+  document.getElementById('userUsername').value = '';
+  document.getElementById('userPhone').value = '';
+  document.getElementById('userRoleSelect').value = 'staff';
+  document.getElementById('userPassword').value = '';
+  document.getElementById('userModal').classList.add('open');
+}
+
+async function saveUser() {
+  const id = document.getElementById('userEditId').value;
+  const body = {
+    name: document.getElementById('userFullName').value,
+    username: document.getElementById('userUsername').value,
+    phone: document.getElementById('userPhone').value,
+    role: document.getElementById('userRoleSelect').value,
+    password: document.getElementById('userPassword').value
+  };
+  if (!body.name || !body.username || (!id && !body.password)) { alert('Fill all required fields'); return; }
+  const r = await api('/users' + (id ? '/' + id : ''), { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
+  if (r && r.ok) { closeModal('userModal'); loadUsers(); }
+  else { const d = await r.json(); alert(d.error || 'Error'); }
+}
+
+async function deleteUser(id) {
+  if (!confirm('Delete this user?')) return;
+  await api('/users/' + id, { method: 'DELETE' });
+  loadUsers();
+}
+
+function exportCSV() {
+  let url = '/api/trips/export/csv?';
+  const tid = document.getElementById('filterTruck').value;
+  const fd = document.getElementById('filterFrom').value;
+  const td2 = document.getElementById('filterTo').value;
+  if (tid) url += 'truck_id=' + tid + '&';
+  if (fd) url += 'from_date=' + fd + '&';
+  if (td2) url += 'to_date=' + td2 + '&';
+  window.open(url, '_blank');
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+document.getElementById('loginPass').addEventListener('keypress', e => { if (e.key === 'Enter') doLogin(); });
+
+if (token) showApp();
+</script>
+</body>
+</html>
