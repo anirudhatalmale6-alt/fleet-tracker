@@ -353,21 +353,23 @@
   </div>
 </div>
 
-<!-- TRUCK MODAL -->
-<div class="modal-overlay" id="truckModal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <h3 id="truckModalTitle">Add Truck</h3>
+<!-- TRUCK MODAL - full screen page -->
+<div id="truckModal" style="display:none;position:fixed;inset:0;z-index:200;background:#f0f2f5;">
+  <div style="background:#16213e;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;">
+    <span style="font-size:18px;font-weight:700;" id="truckModalTitle">Add Truck</span>
+    <span style="font-size:14px;cursor:pointer;padding:8px;" onclick="closeTruckPage()">Cancel</span>
+  </div>
+  <div style="padding:20px;">
     <input type="hidden" id="truckEditId">
-    <label>Plate Number</label>
-    <input type="text" id="truckPlate" placeholder="e.g. ABC-123XY">
-    <label>Truck Name</label>
-    <input type="text" id="truckName" placeholder="e.g. DAF Truck, Blue Volvo">
-    <div style="height:120px;"></div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeModal('truckModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveTruck()">Save</button>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:14px;color:#555;margin-bottom:6px;font-weight:600;">Plate Number</div>
+      <input type="text" id="truckPlate" placeholder="e.g. ABC-123XY" style="width:100%;padding:14px 16px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:16px;background:#fff;">
     </div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:14px;color:#555;margin-bottom:6px;font-weight:600;">Truck Name</div>
+      <input type="text" id="truckName" placeholder="e.g. DAF Truck, Blue Volvo" style="width:100%;padding:14px 16px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:16px;background:#fff;">
+    </div>
+    <button class="btn btn-primary" onclick="saveTruck()" style="width:100%;padding:16px;font-size:16px;justify-content:center;margin-top:10px;">Save Truck</button>
   </div>
 </div>
 
@@ -683,7 +685,7 @@ function openTruckModal() {
   document.getElementById('truckEditId').value = '';
   document.getElementById('truckPlate').value = '';
   document.getElementById('truckName').value = '';
-  document.getElementById('truckModal').classList.add('open');
+  document.getElementById('truckModal').style.display = 'block';
 }
 
 function editTruck(id, plate, name) {
@@ -691,7 +693,11 @@ function editTruck(id, plate, name) {
   document.getElementById('truckEditId').value = id;
   document.getElementById('truckPlate').value = plate;
   document.getElementById('truckName').value = name;
-  document.getElementById('truckModal').classList.add('open');
+  document.getElementById('truckModal').style.display = 'block';
+}
+
+function closeTruckPage() {
+  document.getElementById('truckModal').style.display = 'none';
 }
 
 async function saveTruck() {
@@ -699,7 +705,7 @@ async function saveTruck() {
   var body = { plate: document.getElementById('truckPlate').value, name: document.getElementById('truckName').value };
   if (!body.plate) { alert('Plate number is required'); return; }
   var r = await api('/trucks' + (id ? '/' + id : ''), { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
-  if (r && r.ok) { closeModal('truckModal'); loadTrucks(); }
+  if (r && r.ok) { closeTruckPage(); loadTrucks(); }
   else { var d = await r.json(); alert(d.error || 'Error'); }
 }
 
