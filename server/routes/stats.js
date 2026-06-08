@@ -32,12 +32,18 @@ router.get('/summary', authenticate, (req, res) => {
 
   const by_category = {};
   let total_expenses = 0;
-  expTotals.forEach(e => { by_category[e.category] = e.total; total_expenses += e.total; });
+  let driver_motoboy = 0;
+  expTotals.forEach(e => { by_category[e.category] = e.total; total_expenses += e.total; if (e.category === 'driver_motoboy') driver_motoboy = e.total; });
+  const expenses_excl_driver = total_expenses - driver_motoboy;
+  const gross_profit = stats.total_revenue - expenses_excl_driver;
+  const net_profit = gross_profit - driver_motoboy;
 
   res.json({
     ...stats,
     total_expenses,
-    net_profit: stats.total_revenue - total_expenses,
+    driver_motoboy,
+    gross_profit,
+    net_profit,
     expenses_by_category: by_category
   });
 });

@@ -17,9 +17,13 @@ function getTripsWithExpenses(trips) {
   return trips.map(t => {
     const ex = expMap[t.id] || {};
     let total_expenses = 0;
+    let driver_motoboy = ex['driver_motoboy'] || 0;
     EXPENSE_CATEGORIES.forEach(c => { total_expenses += (ex[c.key] || 0); });
     const total_income = (t.customer_charge || 0) + (t.haulage || 0);
-    return { ...t, expenses: ex, total_expenses, total_income, net_profit: total_income - total_expenses };
+    const expenses_excl_driver = total_expenses - driver_motoboy;
+    const gross_profit = total_income - expenses_excl_driver;
+    const net_profit = gross_profit - driver_motoboy;
+    return { ...t, expenses: ex, total_expenses, total_income, gross_profit, driver_motoboy, net_profit };
   });
 }
 
