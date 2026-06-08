@@ -2,108 +2,191 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#16213e">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Fleet Tracker</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: #1a1a2e; }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: #1a1a2e; overflow-x: hidden; }
+    input, select, textarea, button { font-family: inherit; }
 
-    .login-page { display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-    .login-box { background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 360px; }
-    .login-box h1 { font-size: 24px; margin-bottom: 8px; color: #16213e; }
-    .login-box p { color: #666; margin-bottom: 24px; font-size: 14px; }
-    .login-box input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 12px; }
+    /* LOGIN */
+    .login-page { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+    .login-box { background: #fff; padding: 32px 24px; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); width: 100%; max-width: 380px; }
+    .login-box h1 { font-size: 26px; margin-bottom: 4px; color: #16213e; }
+    .login-box h1 span { color: #e94560; }
+    .login-box p { color: #888; margin-bottom: 24px; font-size: 14px; }
+    .login-box input { width: 100%; padding: 14px 16px; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 16px; margin-bottom: 12px; -webkit-appearance: none; }
     .login-box input:focus { outline: none; border-color: #0f3460; }
-    .login-box button { width: 100%; padding: 12px; background: #0f3460; color: #fff; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; }
-    .login-box button:hover { background: #16213e; }
-    .login-error { color: #e74c3c; font-size: 13px; margin-bottom: 12px; display: none; }
+    .login-box button { width: 100%; padding: 14px; background: #0f3460; color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; }
+    .login-box button:active { background: #16213e; transform: scale(0.98); }
+    .login-error { color: #e74c3c; font-size: 14px; margin-bottom: 12px; display: none; }
 
-    .app { display: none; }
-    .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 220px; background: #16213e; color: #fff; padding: 20px 0; }
-    .sidebar h2 { padding: 0 20px; font-size: 18px; margin-bottom: 30px; }
-    .sidebar h2 span { color: #e94560; }
-    .sidebar a { display: block; padding: 12px 20px; color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; }
-    .sidebar a:hover, .sidebar a.active { color: #fff; background: rgba(255,255,255,0.1); }
-    .sidebar .user-info { position: absolute; bottom: 20px; left: 20px; right: 20px; font-size: 12px; color: rgba(255,255,255,0.5); }
-    .sidebar .user-info strong { color: rgba(255,255,255,0.8); display: block; font-size: 13px; }
-    .sidebar .logout { color: #e94560; cursor: pointer; margin-top: 8px; display: inline-block; }
+    /* APP SHELL */
+    .app { display: none; padding-bottom: 70px; }
 
-    .main { margin-left: 220px; padding: 24px; }
-    .page { display: none; }
+    /* TOP HEADER */
+    .top-bar { position: sticky; top: 0; z-index: 50; background: #16213e; color: #fff; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; }
+    .top-bar h1 { font-size: 18px; font-weight: 700; }
+    .top-bar h1 span { color: #e94560; }
+    .top-bar .user-badge { font-size: 12px; color: rgba(255,255,255,0.7); cursor: pointer; padding: 6px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; }
+    .top-bar .user-badge:active { background: rgba(255,255,255,0.1); }
+
+    /* BOTTOM NAV */
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; background: #fff; border-top: 1px solid #e0e0e0; display: flex; padding-bottom: env(safe-area-inset-bottom, 0); }
+    .bottom-nav a { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px 4px 6px; text-decoration: none; color: #999; font-size: 10px; font-weight: 600; gap: 2px; }
+    .bottom-nav a.active { color: #0f3460; }
+    .bottom-nav a svg { width: 22px; height: 22px; }
+    .bottom-nav a.active svg { stroke: #0f3460; }
+
+    /* PAGES */
+    .main { padding: 0; }
+    .page { display: none; padding: 16px; }
     .page.active { display: block; }
-    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    .page-header h1 { font-size: 22px; color: #16213e; }
+    .page-title { font-size: 20px; font-weight: 700; color: #16213e; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
 
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .stat-card { background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-    .stat-card .label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
-    .stat-card .value { font-size: 28px; font-weight: 700; color: #16213e; margin-top: 4px; }
-    .stat-card .unit { font-size: 14px; color: #666; font-weight: 400; }
+    /* STATS */
+    .stats-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; margin: 0 -16px; padding-left: 16px; padding-right: 16px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .stats-scroll::-webkit-scrollbar { display: none; }
+    .stat-card { background: #fff; padding: 14px 16px; border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,0.06); min-width: 140px; flex-shrink: 0; }
+    .stat-card .label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card .value { font-size: 22px; font-weight: 700; color: #16213e; margin-top: 2px; }
+    .stat-card .unit { font-size: 12px; color: #888; font-weight: 400; }
 
-    .card { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); padding: 20px; margin-bottom: 20px; }
-    .card h3 { font-size: 16px; margin-bottom: 16px; color: #16213e; }
+    /* CARDS */
+    .card { background: #fff; border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,0.06); padding: 16px; margin-bottom: 12px; }
+    .card h3 { font-size: 15px; margin-bottom: 12px; color: #16213e; font-weight: 700; }
 
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    th { text-align: left; padding: 10px 12px; border-bottom: 2px solid #eee; color: #888; font-weight: 600; font-size: 12px; text-transform: uppercase; }
-    td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
-    tr:hover td { background: #fafafa; }
+    /* TRIP CARDS (mobile) */
+    .trip-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,0.06); padding: 14px 16px; margin-bottom: 10px; }
+    .trip-card .trip-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .trip-card .trip-date { font-size: 12px; color: #888; }
+    .trip-card .trip-number { font-size: 12px; color: #0f3460; font-weight: 700; background: #e8edf5; padding: 2px 8px; border-radius: 10px; }
+    .trip-card .trip-route { font-size: 15px; font-weight: 600; color: #16213e; margin-bottom: 6px; }
+    .trip-card .trip-details { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .trip-card .trip-detail { text-align: center; }
+    .trip-card .trip-detail .dl { font-size: 10px; color: #888; text-transform: uppercase; }
+    .trip-card .trip-detail .dv { font-size: 14px; font-weight: 600; color: #333; }
+    .trip-card .trip-customer { font-size: 12px; color: #666; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f0f0f0; }
+    .trip-card .trip-truck { font-size: 11px; color: #999; }
+    .trip-card .trip-actions { margin-top: 8px; display: flex; justify-content: flex-end; }
 
-    .btn { padding: 8px 16px; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    /* TRUCK CARDS */
+    .truck-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,0.06); padding: 14px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .truck-card .truck-info h4 { font-size: 16px; color: #16213e; margin-bottom: 2px; }
+    .truck-card .truck-info p { font-size: 13px; color: #888; }
+    .truck-card .truck-stats { text-align: right; }
+    .truck-card .truck-stats .ts { font-size: 12px; color: #888; }
+    .truck-card .truck-stats .tv { font-size: 15px; font-weight: 600; color: #16213e; }
+
+    /* BUTTONS */
+    .btn { padding: 10px 18px; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:active { transform: scale(0.97); }
     .btn-primary { background: #0f3460; color: #fff; }
-    .btn-primary:hover { background: #16213e; }
     .btn-danger { background: #e74c3c; color: #fff; }
-    .btn-danger:hover { background: #c0392b; }
-    .btn-sm { padding: 5px 10px; font-size: 12px; }
-    .btn-outline { background: transparent; border: 1px solid #ddd; color: #333; }
-    .btn-outline:hover { background: #f5f5f5; }
+    .btn-sm { padding: 7px 12px; font-size: 12px; }
+    .btn-outline { background: transparent; border: 1.5px solid #ddd; color: #333; }
 
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; justify-content: center; align-items: center; }
-    .modal-overlay.open { display: flex; }
-    .modal { background: #fff; border-radius: 12px; padding: 24px; width: 500px; max-height: 85vh; overflow-y: auto; }
-    .modal h3 { margin-bottom: 16px; }
-    .modal label { display: block; font-size: 13px; color: #555; margin-bottom: 4px; margin-top: 12px; }
-    .modal input, .modal select, .modal textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
-    .modal textarea { resize: vertical; height: 60px; }
-    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+    /* FAB */
+    .fab { position: fixed; bottom: 80px; right: 16px; z-index: 40; width: 56px; height: 56px; border-radius: 50%; background: #e94560; color: #fff; border: none; font-size: 28px; font-weight: 300; cursor: pointer; box-shadow: 0 4px 14px rgba(233,69,96,0.4); display: flex; align-items: center; justify-content: center; }
+    .fab:active { transform: scale(0.92); }
 
-    .expense-section { margin-top: 16px; border-top: 1px solid #eee; padding-top: 12px; }
-    .expense-section-title { font-weight: 600; font-size: 14px; color: #16213e; margin-bottom: 10px; }
-    .expense-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
-    .expense-field label { font-size: 11px; color: #777; margin: 0 0 2px 0; }
-    .expense-field input { padding: 8px; font-size: 13px; }
+    /* MODAL - Full screen on mobile */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; }
+    .modal-overlay.open { display: flex; justify-content: center; align-items: flex-end; }
+    .modal { background: #fff; border-radius: 20px 20px 0 0; padding: 20px; width: 100%; max-height: 92vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .modal-handle { width: 40px; height: 4px; background: #ddd; border-radius: 2px; margin: 0 auto 16px; }
+    .modal h3 { font-size: 18px; margin-bottom: 16px; color: #16213e; }
+    .modal label { display: block; font-size: 13px; color: #666; margin-bottom: 4px; margin-top: 14px; font-weight: 500; }
+    .modal input, .modal select, .modal textarea { width: 100%; padding: 12px 14px; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 16px; -webkit-appearance: none; }
+    .modal input:focus, .modal select:focus, .modal textarea:focus { outline: none; border-color: #0f3460; }
+    .modal textarea { resize: vertical; min-height: 60px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; padding-bottom: env(safe-area-inset-bottom, 10px); }
+    .modal-actions .btn { flex: 1; padding: 14px; justify-content: center; font-size: 15px; }
 
-    .badge { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    /* EXPENSE SECTION */
+    .expense-section { margin-top: 16px; border-top: 1px solid #f0f0f0; padding-top: 14px; }
+    .expense-section-title { font-weight: 700; font-size: 15px; color: #16213e; margin-bottom: 12px; }
+    .diesel-calc { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 14px; padding: 12px; background: #f8f9fa; border-radius: 10px; }
+    .diesel-calc > div { flex: 1; }
+    .diesel-calc .dc-op { font-size: 18px; color: #bbb; padding-bottom: 10px; text-align: center; flex: 0 0 20px; }
+    .diesel-calc label { font-size: 10px; color: #888; margin: 0 0 3px; }
+    .diesel-calc input { padding: 10px; font-size: 14px; }
+    .expense-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+    .expense-field label { font-size: 11px; color: #777; margin: 0 0 2px; }
+    .expense-field input { padding: 10px; font-size: 14px; }
+
+    /* FILTERS */
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .filters select, .filters input { padding: 10px 12px; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 14px; -webkit-appearance: none; }
+
+    /* BADGES */
+    .badge { padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
     .badge-admin { background: #ffeaa7; color: #d35400; }
     .badge-staff { background: #dfe6e9; color: #2d3436; }
     .badge-viewer { background: #e8f5e9; color: #27ae60; }
 
-    .empty { text-align: center; padding: 40px; color: #999; }
-    .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
-    .filters input, .filters select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
+    .empty { text-align: center; padding: 40px 20px; color: #999; font-size: 14px; }
 
-    .expense-breakdown { font-size: 12px; color: #666; }
-    .expense-breakdown span { display: inline-block; margin-right: 8px; }
+    /* EXPENSE BREAKDOWN */
+    .exp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .exp-item { padding: 10px; background: #f8f9fa; border-radius: 8px; }
+    .exp-item .el { font-size: 10px; color: #888; text-transform: uppercase; }
+    .exp-item .ev { font-size: 16px; font-weight: 600; color: #16213e; }
 
-    @media (max-width: 768px) {
-      .sidebar { width: 100%; position: relative; padding: 10px 0; }
-      .sidebar h2 { padding: 0 16px; margin-bottom: 10px; }
-      .sidebar a { display: inline-block; padding: 8px 12px; font-size: 13px; }
-      .sidebar .user-info { position: relative; bottom: auto; left: 16px; margin-top: 10px; }
-      .main { margin-left: 0; padding: 16px; }
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
-      .modal { width: 95%; }
-      .expense-grid { grid-template-columns: 1fr; }
-      .filters { flex-direction: column; }
-      table { font-size: 12px; }
-      th, td { padding: 8px 6px; }
+    /* USER CARDS */
+    .user-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,0.06); padding: 14px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .user-card .ui h4 { font-size: 15px; color: #16213e; margin-bottom: 2px; }
+    .user-card .ui p { font-size: 12px; color: #888; }
+
+    /* USER MENU POPUP */
+    .user-menu { display: none; position: fixed; top: 50px; right: 12px; z-index: 60; background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 8px 0; min-width: 180px; }
+    .user-menu.open { display: block; }
+    .user-menu .um-header { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; }
+    .user-menu .um-header strong { display: block; font-size: 14px; color: #16213e; }
+    .user-menu .um-header span { font-size: 12px; color: #888; }
+    .user-menu a { display: block; padding: 12px 16px; font-size: 14px; color: #333; text-decoration: none; }
+    .user-menu a:active { background: #f5f5f5; }
+    .user-menu .um-logout { color: #e74c3c; border-top: 1px solid #f0f0f0; }
+
+    /* DESKTOP (768px+) */
+    @media (min-width: 769px) {
+      .app { padding-bottom: 0; }
+      .bottom-nav { display: none; }
+      .top-bar { display: none; }
+      .desktop-sidebar { display: block !important; position: fixed; left: 0; top: 0; bottom: 0; width: 220px; background: #16213e; color: #fff; padding: 20px 0; z-index: 50; }
+      .desktop-sidebar h2 { padding: 0 20px; font-size: 18px; margin-bottom: 30px; }
+      .desktop-sidebar h2 span { color: #e94560; }
+      .desktop-sidebar a { display: block; padding: 12px 20px; color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; }
+      .desktop-sidebar a:hover, .desktop-sidebar a.active { color: #fff; background: rgba(255,255,255,0.1); }
+      .desktop-sidebar .user-info { position: absolute; bottom: 20px; left: 20px; right: 20px; font-size: 12px; color: rgba(255,255,255,0.5); }
+      .desktop-sidebar .user-info strong { color: rgba(255,255,255,0.8); display: block; font-size: 13px; }
+      .desktop-sidebar .logout { color: #e94560; cursor: pointer; margin-top: 8px; display: inline-block; }
+      .main { margin-left: 220px; }
+      .page { padding: 24px; }
+      .fab { bottom: 24px; right: 24px; }
+      .modal-overlay.open { align-items: center; }
+      .modal { border-radius: 16px; max-width: 520px; max-height: 85vh; }
+      .stats-scroll { flex-wrap: wrap; overflow-x: visible; }
+      .stat-card { min-width: 0; flex: 1 1 180px; }
+      .trip-card .trip-details { grid-template-columns: repeat(4, 1fr); }
+      .expense-grid { grid-template-columns: 1fr 1fr 1fr; }
     }
+
+    /* DESKTOP SIDEBAR hidden on mobile */
+    .desktop-sidebar { display: none; }
   </style>
 </head>
 <body>
 
+<!-- LOGIN -->
 <div class="login-page" id="loginPage">
   <div class="login-box">
-    <h1>Fleet Tracker</h1>
+    <h1>Fleet<span>Tracker</span></h1>
     <p>Log in to manage your fleet</p>
     <div class="login-error" id="loginError"></div>
     <input type="text" id="loginUser" placeholder="Username" autocomplete="username">
@@ -112,16 +195,33 @@
   </div>
 </div>
 
+<!-- APP -->
 <div class="app" id="app">
-  <nav class="sidebar">
+  <!-- TOP BAR (mobile) -->
+  <div class="top-bar">
+    <h1>Fleet<span>Tracker</span></h1>
+    <div class="user-badge" id="topUserBadge" onclick="toggleUserMenu()"></div>
+  </div>
+
+  <!-- USER MENU -->
+  <div class="user-menu" id="userMenu">
+    <div class="um-header">
+      <strong id="menuUserName"></strong>
+      <span id="menuUserRole"></span>
+    </div>
+    <a href="#" class="um-logout" onclick="doLogout();return false;">Log Out</a>
+  </div>
+
+  <!-- DESKTOP SIDEBAR -->
+  <nav class="desktop-sidebar">
     <h2>Fleet<span>Tracker</span></h2>
     <a href="#" data-page="dashboard" class="active">Dashboard</a>
     <a href="#" data-page="trips">Trips</a>
     <a href="#" data-page="trucks">Trucks</a>
-    <a href="#" data-page="users" id="navUsers">Users</a>
+    <a href="#" data-page="users" class="nav-users">Users</a>
     <div class="user-info">
-      <strong id="userName"></strong>
-      <span id="userRole"></span>
+      <strong id="deskUserName"></strong>
+      <span id="deskUserRole"></span>
       <br><span class="logout" onclick="doLogout()">Log out</span>
     </div>
   </nav>
@@ -129,74 +229,80 @@
   <div class="main">
     <!-- DASHBOARD -->
     <div class="page active" id="pageDashboard">
-      <div class="page-header"><h1>Dashboard</h1></div>
-      <div class="stats-grid" id="dashStats"></div>
-      <div class="card" id="dashExpenseBreakdown" style="display:none">
+      <div class="page-title">Dashboard</div>
+      <div class="stats-scroll" id="dashStats"></div>
+      <div class="card" id="dashExpenseBreakdown" style="display:none;margin-top:12px">
         <h3>Expense Breakdown</h3>
-        <div id="dashExpenseDetails"></div>
+        <div id="dashExpenseDetails" class="exp-grid"></div>
       </div>
-      <div class="card">
-        <h3>Recent Trips</h3>
-        <table><thead><tr><th>Date</th><th>Truck</th><th>Trip #</th><th>Route</th><th>Distance</th><th>Charge</th><th>Expenses</th><th>Net</th><th>Customer</th></tr></thead>
-        <tbody id="dashTrips"></tbody></table>
-      </div>
-      <div class="card">
-        <h3>Trucks Overview</h3>
-        <table><thead><tr><th>Truck</th><th>Plate</th><th>Trips</th><th>Total km</th><th>Revenue</th><th>Expenses</th><th>Net Profit</th></tr></thead>
-        <tbody id="dashTrucks"></tbody></table>
+      <div style="margin-top:12px">
+        <div class="page-title" style="font-size:16px">Recent Trips</div>
+        <div id="dashTrips"></div>
       </div>
     </div>
 
     <!-- TRIPS -->
     <div class="page" id="pageTrips">
-      <div class="page-header">
-        <h1>Trips</h1>
-        <div>
-          <button class="btn btn-outline" onclick="exportCSV()">Export CSV</button>
-          <button class="btn btn-primary" id="btnAddTrip" onclick="openTripModal()">+ Log Trip</button>
-        </div>
+      <div class="page-title">
+        Trips
+        <button class="btn btn-outline btn-sm" onclick="exportCSV()">Export</button>
       </div>
       <div class="filters">
-        <select id="filterTruck"><option value="">All Trucks</option></select>
-        <input type="date" id="filterFrom" placeholder="From">
-        <input type="date" id="filterTo" placeholder="To">
-        <button class="btn btn-outline btn-sm" onclick="loadTrips()">Filter</button>
+        <select id="filterTruck" style="flex:1"><option value="">All Trucks</option></select>
+        <input type="date" id="filterFrom" style="flex:1">
+        <input type="date" id="filterTo" style="flex:1">
+        <button class="btn btn-primary btn-sm" onclick="loadTrips()">Go</button>
       </div>
-      <div class="card">
-        <table><thead><tr><th>Date</th><th>Truck</th><th>Trip #</th><th>From</th><th>To</th><th>Dist</th><th>Fuel</th><th>Charge</th><th>Expenses</th><th>Net</th><th>Customer</th><th></th></tr></thead>
-        <tbody id="tripsTable"></tbody></table>
-      </div>
+      <div id="tripsContainer"></div>
     </div>
 
     <!-- TRUCKS -->
     <div class="page" id="pageTrucks">
-      <div class="page-header">
-        <h1>Trucks</h1>
-        <button class="btn btn-primary" id="btnAddTruck" onclick="openTruckModal()">+ Add Truck</button>
+      <div class="page-title">
+        Trucks
+        <button class="btn btn-primary btn-sm" id="btnAddTruck" onclick="openTruckModal()">+ Add</button>
       </div>
-      <div class="card">
-        <table><thead><tr><th>Plate</th><th>Name</th><th>Trips</th><th>Total km</th><th>Total Fuel</th><th></th></tr></thead>
-        <tbody id="trucksTable"></tbody></table>
-      </div>
+      <div id="trucksContainer"></div>
     </div>
 
     <!-- USERS -->
     <div class="page" id="pageUsers">
-      <div class="page-header">
-        <h1>Users</h1>
-        <button class="btn btn-primary" onclick="openUserModal()">+ Add User</button>
+      <div class="page-title">
+        Users
+        <button class="btn btn-primary btn-sm" onclick="openUserModal()">+ Add</button>
       </div>
-      <div class="card">
-        <table><thead><tr><th>Name</th><th>Username</th><th>Phone</th><th>Role</th><th></th></tr></thead>
-        <tbody id="usersTable"></tbody></table>
-      </div>
+      <div id="usersContainer"></div>
     </div>
   </div>
+
+  <!-- FAB (add trip) -->
+  <button class="fab" id="fabAdd" onclick="openTripModal()">+</button>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <a href="#" data-page="dashboard" class="active">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
+      Home
+    </a>
+    <a href="#" data-page="trips">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/><path d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2-1m2 0h6m4 0l2 1V8a1 1 0 00-.4-.8l-4-3a1 1 0 00-1.2 0l-4 3A1 1 0 0013 8z"/></svg>
+      Trips
+    </a>
+    <a href="#" data-page="trucks">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      Trucks
+    </a>
+    <a href="#" data-page="users" class="nav-users">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Users
+    </a>
+  </nav>
 </div>
 
 <!-- TRIP MODAL -->
 <div class="modal-overlay" id="tripModal">
   <div class="modal">
+    <div class="modal-handle"></div>
     <h3 id="tripModalTitle">Log Trip</h3>
     <input type="hidden" id="tripId">
     <label>Truck</label>
@@ -206,23 +312,23 @@
     <label>From</label>
     <input type="text" id="tripFrom" placeholder="Origin location">
     <label>To</label>
-    <input type="text" id="tripTo" placeholder="Destination location">
+    <input type="text" id="tripTo" placeholder="Destination">
     <label>Distance (km)</label>
-    <input type="number" id="tripDistance" step="0.1">
+    <input type="number" id="tripDistance" inputmode="decimal" step="0.1">
     <label>Fuel (litres)</label>
-    <input type="number" id="tripFuel" step="0.1" oninput="calcDiesel()">
+    <input type="number" id="tripFuel" inputmode="decimal" step="0.1" oninput="calcDiesel()">
     <label>Charge to Customer (Naira)</label>
-    <input type="number" id="tripCharge" step="0.01" placeholder="Amount charged to customer">
+    <input type="number" id="tripCharge" inputmode="decimal" step="0.01" placeholder="Amount charged">
     <label>Customer</label>
     <input type="text" id="tripCustomer" placeholder="Customer name">
     <div class="expense-section">
       <div class="expense-section-title">Expenses (Naira)</div>
-      <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:10px;padding:10px;background:#f8f9fa;border-radius:6px;">
-        <div style="flex:1"><label style="font-size:11px;color:#777;margin:0 0 2px 0;">Diesel Price/Litre</label><input type="number" id="dieselPricePerLitre" step="0.01" placeholder="e.g. 1200" oninput="calcDiesel()"></div>
-        <div style="font-size:18px;color:#888;padding-bottom:8px;">x</div>
-        <div style="flex:1"><label style="font-size:11px;color:#777;margin:0 0 2px 0;">Litres (from above)</label><input type="number" id="dieselLitresDisplay" disabled style="background:#eee;"></div>
-        <div style="font-size:18px;color:#888;padding-bottom:8px;">=</div>
-        <div style="flex:1"><label style="font-size:11px;color:#777;margin:0 0 2px 0;">Diesel Cost</label><input type="number" id="dieselCostDisplay" disabled style="background:#e8f5e9;font-weight:600;"></div>
+      <div class="diesel-calc">
+        <div><label>Diesel/Litre</label><input type="number" id="dieselPricePerLitre" inputmode="decimal" step="0.01" placeholder="e.g. 1200" oninput="calcDiesel()"></div>
+        <div class="dc-op">x</div>
+        <div><label>Litres</label><input type="number" id="dieselLitresDisplay" disabled style="background:#eee;"></div>
+        <div class="dc-op">=</div>
+        <div><label>Diesel Cost</label><input type="number" id="dieselCostDisplay" disabled style="background:#e8f5e9;font-weight:600;"></div>
       </div>
       <div class="expense-grid" id="expenseFields"></div>
     </div>
@@ -230,7 +336,7 @@
     <textarea id="tripNotes" placeholder="Optional notes"></textarea>
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeModal('tripModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveTrip()">Save</button>
+      <button class="btn btn-primary" onclick="saveTrip()">Save Trip</button>
     </div>
   </div>
 </div>
@@ -238,6 +344,7 @@
 <!-- TRUCK MODAL -->
 <div class="modal-overlay" id="truckModal">
   <div class="modal">
+    <div class="modal-handle"></div>
     <h3 id="truckModalTitle">Add Truck</h3>
     <input type="hidden" id="truckEditId">
     <label>Plate Number</label>
@@ -254,6 +361,7 @@
 <!-- USER MODAL -->
 <div class="modal-overlay" id="userModal">
   <div class="modal">
+    <div class="modal-handle"></div>
     <h3 id="userModalTitle">Add User</h3>
     <input type="hidden" id="userEditId">
     <label>Full Name</label>
@@ -261,7 +369,7 @@
     <label>Username</label>
     <input type="text" id="userUsername" placeholder="Login username">
     <label>Phone (WhatsApp)</label>
-    <input type="text" id="userPhone" placeholder="e.g. 2348012345678">
+    <input type="tel" id="userPhone" placeholder="e.g. 2348012345678">
     <label>Role</label>
     <select id="userRoleSelect">
       <option value="staff">Staff</option>
@@ -282,7 +390,7 @@ let token = localStorage.getItem('ft_token');
 let currentUser = null;
 let expenseCategories = [];
 
-const fmt = n => Number(n).toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 1 });
+const fmt = n => Number(n||0).toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 1 });
 
 async function api(url, opts = {}) {
   const headers = { 'Content-Type': 'application/json' };
@@ -311,12 +419,22 @@ async function doLogin() {
 }
 
 function doLogout() {
-  token = null;
-  currentUser = null;
+  token = null; currentUser = null;
   localStorage.removeItem('ft_token');
   document.getElementById('app').style.display = 'none';
   document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('userMenu').classList.remove('open');
 }
+
+function toggleUserMenu() {
+  document.getElementById('userMenu').classList.toggle('open');
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#userMenu') && !e.target.closest('#topUserBadge')) {
+    document.getElementById('userMenu').classList.remove('open');
+  }
+});
 
 async function showApp() {
   if (!currentUser) {
@@ -326,60 +444,76 @@ async function showApp() {
   }
   document.getElementById('loginPage').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  document.getElementById('userName').textContent = currentUser.name;
-  document.getElementById('userRole').textContent = currentUser.role;
-  document.getElementById('navUsers').style.display = currentUser.role === 'admin' ? 'block' : 'none';
-  document.getElementById('btnAddTrip').style.display = ['admin','staff'].includes(currentUser.role) ? 'inline-flex' : 'none';
-  document.getElementById('btnAddTruck').style.display = currentUser.role === 'admin' ? 'inline-flex' : 'none';
+
+  document.getElementById('topUserBadge').textContent = currentUser.name.split(' ')[0];
+  document.getElementById('menuUserName').textContent = currentUser.name;
+  document.getElementById('menuUserRole').textContent = currentUser.role;
+  document.getElementById('deskUserName').textContent = currentUser.name;
+  document.getElementById('deskUserRole').textContent = currentUser.role;
+
+  var isAdmin = currentUser.role === 'admin';
+  var canLog = ['admin','staff'].includes(currentUser.role);
+  document.querySelectorAll('.nav-users').forEach(function(el) { el.style.display = isAdmin ? '' : 'none'; });
+  document.getElementById('fabAdd').style.display = canLog ? 'flex' : 'none';
+  document.getElementById('btnAddTruck').style.display = isAdmin ? 'inline-flex' : 'none';
 
   const catR = await api('/trips/categories');
-  if (catR && catR.ok) {
-    expenseCategories = await catR.json();
-    buildExpenseFields();
-  }
+  if (catR && catR.ok) { expenseCategories = await catR.json(); buildExpenseFields(); }
 
   loadDashboard();
 }
 
 function buildExpenseFields() {
-  const container = document.getElementById('expenseFields');
-  container.innerHTML = expenseCategories.map(c =>
-    '<div class="expense-field">' +
-      '<label>' + c.label + '</label>' +
-      '<input type="number" id="exp_' + c.key + '" step="0.01" placeholder="0">' +
-    '</div>'
-  ).join('');
+  document.getElementById('expenseFields').innerHTML = expenseCategories.map(function(c) {
+    return '<div class="expense-field"><label>' + c.label + '</label><input type="number" id="exp_' + c.key + '" inputmode="decimal" step="0.01" placeholder="0"></div>';
+  }).join('');
 }
 
-document.querySelectorAll('.sidebar a[data-page]').forEach(a => {
-  a.addEventListener('click', e => {
-    e.preventDefault();
-    document.querySelectorAll('.sidebar a').forEach(x => x.classList.remove('active'));
-    a.classList.add('active');
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById('page' + a.dataset.page.charAt(0).toUpperCase() + a.dataset.page.slice(1)).classList.add('active');
-    if (a.dataset.page === 'dashboard') loadDashboard();
-    if (a.dataset.page === 'trips') loadTrips();
-    if (a.dataset.page === 'trucks') loadTrucks();
-    if (a.dataset.page === 'users') loadUsers();
-  });
+function switchPage(name) {
+  document.querySelectorAll('.bottom-nav a, .desktop-sidebar a').forEach(function(a) { a.classList.toggle('active', a.dataset.page === name); });
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  document.getElementById('page' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
+  document.getElementById('userMenu').classList.remove('open');
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'trips') loadTrips();
+  if (name === 'trucks') loadTrucks();
+  if (name === 'users') loadUsers();
+}
+
+document.querySelectorAll('.bottom-nav a[data-page], .desktop-sidebar a[data-page]').forEach(function(a) {
+  a.addEventListener('click', function(e) { e.preventDefault(); switchPage(a.dataset.page); });
 });
 
+function renderTripCard(t, showActions) {
+  var net = t.customer_charge ? fmt(t.net_profit) : '-';
+  var netColor = t.net_profit >= 0 ? '#27ae60' : '#e74c3c';
+  return '<div class="trip-card">' +
+    '<div class="trip-header">' +
+      '<div><span class="trip-date">' + t.trip_date + '</span> <span class="trip-truck">' + (t.truck_name || '') + ' ' + (t.truck_plate || '') + '</span></div>' +
+      '<span class="trip-number">Trip #' + (t.trip_number || 1) + '</span>' +
+    '</div>' +
+    '<div class="trip-route">' + t.origin + ' &rarr; ' + t.destination + '</div>' +
+    '<div class="trip-details">' +
+      '<div class="trip-detail"><div class="dl">Distance</div><div class="dv">' + fmt(t.distance_km) + ' km</div></div>' +
+      '<div class="trip-detail"><div class="dl">Charge</div><div class="dv">' + (t.customer_charge ? fmt(t.customer_charge) : '-') + '</div></div>' +
+      '<div class="trip-detail"><div class="dl">Net</div><div class="dv" style="color:' + netColor + '">' + net + '</div></div>' +
+    '</div>' +
+    '<div class="trip-customer">Customer: ' + (t.customer_name || '-') + '</div>' +
+    (showActions && currentUser.role === 'admin' ? '<div class="trip-actions"><button class="btn btn-danger btn-sm" onclick="deleteTrip(' + t.id + ')">Delete</button></div>' : '') +
+  '</div>';
+}
+
 async function loadDashboard() {
-  const [statsR, tripsR, trucksR] = await Promise.all([
-    api('/stats/summary'), api('/trips?limit=10'), api('/stats/by-truck')
-  ]);
+  const [statsR, tripsR] = await Promise.all([api('/stats/summary'), api('/trips?limit=5')]);
   if (!statsR) return;
   const stats = await statsR.json();
   const trips = await tripsR.json();
-  const trucks = await trucksR.json();
 
   document.getElementById('dashStats').innerHTML =
-    '<div class="stat-card"><div class="label">Total Trips</div><div class="value">' + stats.total_trips + '</div></div>' +
-    '<div class="stat-card"><div class="label">Total Distance</div><div class="value">' + fmt(stats.total_km) + ' <span class="unit">km</span></div></div>' +
-    '<div class="stat-card"><div class="label">Total Fuel</div><div class="value">' + fmt(stats.total_fuel) + ' <span class="unit">L</span></div></div>' +
+    '<div class="stat-card"><div class="label">Trips</div><div class="value">' + stats.total_trips + '</div></div>' +
+    '<div class="stat-card"><div class="label">Distance</div><div class="value">' + fmt(stats.total_km) + ' <span class="unit">km</span></div></div>' +
     '<div class="stat-card"><div class="label">Revenue</div><div class="value">' + fmt(stats.total_revenue) + ' <span class="unit">NGN</span></div></div>' +
-    '<div class="stat-card"><div class="label">Total Expenses</div><div class="value">' + fmt(stats.total_expenses) + ' <span class="unit">NGN</span></div></div>' +
+    '<div class="stat-card"><div class="label">Expenses</div><div class="value">' + fmt(stats.total_expenses) + ' <span class="unit">NGN</span></div></div>' +
     '<div class="stat-card" style="border-left:3px solid ' + (stats.net_profit >= 0 ? '#27ae60' : '#e74c3c') + '"><div class="label">Net Profit</div><div class="value" style="color:' + (stats.net_profit >= 0 ? '#27ae60' : '#e74c3c') + '">' + fmt(stats.net_profit) + ' <span class="unit">NGN</span></div></div>' +
     '<div class="stat-card"><div class="label">Efficiency</div><div class="value">' + (stats.avg_efficiency || 0) + ' <span class="unit">km/L</span></div></div>';
 
@@ -389,43 +523,27 @@ async function loadDashboard() {
     expCard.style.display = 'block';
     var catMap = {};
     expenseCategories.forEach(function(c) { catMap[c.key] = c.label; });
-    var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;">';
-    for (var key in stats.expenses_by_category) {
-      var label = catMap[key] || key;
-      html += '<div style="padding:10px;background:#f8f9fa;border-radius:6px;"><div style="font-size:11px;color:#888;text-transform:uppercase;">' + label + '</div><div style="font-size:18px;font-weight:600;color:#16213e;">' + fmt(stats.expenses_by_category[key]) + ' <span style="font-size:12px;color:#666;">NGN</span></div></div>';
-    }
-    html += '</div>';
-    expDetails.innerHTML = html;
-  } else {
-    expCard.style.display = 'none';
-  }
+    expDetails.innerHTML = Object.entries(stats.expenses_by_category).map(function(e) {
+      return '<div class="exp-item"><div class="el">' + (catMap[e[0]] || e[0]) + '</div><div class="ev">' + fmt(e[1]) + '</div></div>';
+    }).join('');
+  } else { expCard.style.display = 'none'; }
 
   document.getElementById('dashTrips').innerHTML = trips.length === 0
-    ? '<tr><td colspan="9" class="empty">No trips yet</td></tr>'
-    : trips.map(function(t) {
-      return '<tr><td>' + t.trip_date + '</td><td>' + t.truck_name + ' (' + t.truck_plate + ')</td><td>' + (t.trip_number || 1) + '</td><td>' + t.origin + ' &rarr; ' + t.destination + '</td><td>' + fmt(t.distance_km) + ' km</td><td>' + (t.customer_charge ? fmt(t.customer_charge) : '-') + '</td><td>' + (t.total_expenses ? fmt(t.total_expenses) : '-') + '</td><td style="color:' + (t.net_profit >= 0 ? '#27ae60' : '#e74c3c') + ';font-weight:600">' + (t.customer_charge ? fmt(t.net_profit) : '-') + '</td><td>' + t.customer_name + '</td></tr>';
-    }).join('');
-
-  document.getElementById('dashTrucks').innerHTML = trucks.length === 0
-    ? '<tr><td colspan="7" class="empty">No trucks yet</td></tr>'
-    : trucks.map(function(t) {
-      return '<tr><td>' + t.name + '</td><td>' + t.plate + '</td><td>' + t.trips + '</td><td>' + fmt(t.km) + ' km</td><td>' + fmt(t.revenue) + '</td><td>' + fmt(t.total_expenses) + '</td><td style="color:' + (t.net_profit >= 0 ? '#27ae60' : '#e74c3c') + ';font-weight:600">' + fmt(t.net_profit) + '</td></tr>';
-    }).join('');
+    ? '<div class="empty">No trips yet. Tap + to log your first trip.</div>'
+    : trips.map(function(t) { return renderTripCard(t, false); }).join('');
 }
 
 async function loadTrips() {
   const trucksR = await api('/trucks');
   if (!trucksR) return;
   const trucks = await trucksR.json();
-  const sel = document.getElementById('filterTruck');
-  const tripSel = document.getElementById('tripTruck');
+  var sel = document.getElementById('filterTruck');
+  var tripSel = document.getElementById('tripTruck');
   sel.innerHTML = '<option value="">All Trucks</option>' + trucks.map(function(t) { return '<option value="' + t.id + '">' + t.name + ' (' + t.plate + ')</option>'; }).join('');
   tripSel.innerHTML = trucks.map(function(t) { return '<option value="' + t.id + '">' + t.name + ' (' + t.plate + ')</option>'; }).join('');
 
   var url = '/trips?';
-  var tid = document.getElementById('filterTruck').value;
-  var fd = document.getElementById('filterFrom').value;
-  var td2 = document.getElementById('filterTo').value;
+  var tid = sel.value, fd = document.getElementById('filterFrom').value, td2 = document.getElementById('filterTo').value;
   if (tid) url += 'truck_id=' + tid + '&';
   if (fd) url += 'from_date=' + fd + '&';
   if (td2) url += 'to_date=' + td2 + '&';
@@ -433,35 +551,26 @@ async function loadTrips() {
   const r = await api(url);
   if (!r) return;
   const trips = await r.json();
-  const isAdmin = currentUser.role === 'admin';
-  document.getElementById('tripsTable').innerHTML = trips.length === 0
-    ? '<tr><td colspan="12" class="empty">No trips found</td></tr>'
-    : trips.map(function(t) {
-      return '<tr>' +
-        '<td>' + t.trip_date + '</td><td>' + t.truck_name + '</td><td>' + (t.trip_number || 1) + '</td><td>' + t.origin + '</td><td>' + t.destination + '</td>' +
-        '<td>' + fmt(t.distance_km) + '</td><td>' + fmt(t.fuel_litres) + '</td>' +
-        '<td>' + (t.customer_charge ? fmt(t.customer_charge) : '-') + '</td>' +
-        '<td>' + (t.total_expenses ? fmt(t.total_expenses) : '-') + '</td>' +
-        '<td style="color:' + (t.net_profit >= 0 ? '#27ae60' : '#e74c3c') + ';font-weight:600">' + (t.customer_charge ? fmt(t.net_profit) : '-') + '</td>' +
-        '<td>' + t.customer_name + '</td>' +
-        '<td>' + (isAdmin ? '<button class="btn btn-danger btn-sm" onclick="deleteTrip(' + t.id + ')">Del</button>' : '') + '</td>' +
-      '</tr>';
-    }).join('');
+  document.getElementById('tripsContainer').innerHTML = trips.length === 0
+    ? '<div class="empty">No trips found</div>'
+    : trips.map(function(t) { return renderTripCard(t, true); }).join('');
 }
 
 async function loadTrucks() {
   const r = await api('/trucks');
   if (!r) return;
   const trucks = await r.json();
-  const isAdmin = currentUser.role === 'admin';
-  document.getElementById('trucksTable').innerHTML = trucks.length === 0
-    ? '<tr><td colspan="6" class="empty">No trucks yet</td></tr>'
+  var isAdmin = currentUser.role === 'admin';
+  document.getElementById('trucksContainer').innerHTML = trucks.length === 0
+    ? '<div class="empty">No trucks yet</div>'
     : trucks.map(function(t) {
-      return '<tr>' +
-        '<td>' + t.plate + '</td><td>' + t.name + '</td><td>' + t.total_trips + '</td>' +
-        '<td>' + fmt(t.total_km) + '</td><td>' + fmt(t.total_fuel) + ' L</td>' +
-        '<td>' + (isAdmin ? '<button class="btn btn-outline btn-sm" onclick="editTruck(' + t.id + ',\'' + t.plate.replace(/'/g,"\\'") + '\',\'' + t.name.replace(/'/g,"\\'") + '\')">Edit</button>' : '') + '</td>' +
-      '</tr>';
+      return '<div class="truck-card">' +
+        '<div class="truck-info"><h4>' + t.name + '</h4><p>' + t.plate + '</p></div>' +
+        '<div class="truck-stats">' +
+          '<div><span class="ts">Trips:</span> <span class="tv">' + t.total_trips + '</span></div>' +
+          '<div><span class="ts">km:</span> <span class="tv">' + fmt(t.total_km) + '</span></div>' +
+          (isAdmin ? '<button class="btn btn-outline btn-sm" style="margin-top:6px" onclick="editTruck(' + t.id + ',\'' + t.plate.replace(/'/g,"\\'") + '\',\'' + t.name.replace(/'/g,"\\'") + '\')">Edit</button>' : '') +
+        '</div></div>';
     }).join('');
 }
 
@@ -469,12 +578,13 @@ async function loadUsers() {
   const r = await api('/users');
   if (!r) return;
   const users = await r.json();
-  document.getElementById('usersTable').innerHTML = users.map(function(u) {
-    return '<tr>' +
-      '<td>' + u.name + '</td><td>' + u.username + '</td><td>' + (u.phone || '-') + '</td>' +
-      '<td><span class="badge badge-' + u.role + '">' + u.role + '</span></td>' +
-      '<td>' + (u.id !== currentUser.id ? '<button class="btn btn-danger btn-sm" onclick="deleteUser(' + u.id + ')">Del</button>' : '') + '</td>' +
-    '</tr>';
+  document.getElementById('usersContainer').innerHTML = users.map(function(u) {
+    return '<div class="user-card">' +
+      '<div class="ui"><h4>' + u.name + '</h4><p>@' + u.username + (u.phone ? ' | ' + u.phone : '') + '</p></div>' +
+      '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<span class="badge badge-' + u.role + '">' + u.role + '</span>' +
+        (u.id !== currentUser.id ? '<button class="btn btn-danger btn-sm" onclick="deleteUser(' + u.id + ')">Del</button>' : '') +
+      '</div></div>';
   }).join('');
 }
 
@@ -489,16 +599,13 @@ function openTripModal(trip) {
   document.getElementById('tripCharge').value = trip ? trip.customer_charge : '';
   document.getElementById('tripCustomer').value = trip ? trip.customer_name : '';
   document.getElementById('tripNotes').value = trip ? trip.notes || '' : '';
-
   document.getElementById('dieselPricePerLitre').value = '';
   document.getElementById('dieselLitresDisplay').value = trip ? trip.fuel_litres : '';
   document.getElementById('dieselCostDisplay').value = '';
-
   expenseCategories.forEach(function(c) {
     var el = document.getElementById('exp_' + c.key);
     if (el) el.value = (trip && trip.expenses && trip.expenses[c.key]) ? trip.expenses[c.key] : '';
   });
-
   document.getElementById('tripModal').classList.add('open');
 }
 
@@ -508,10 +615,7 @@ function calcDiesel() {
   document.getElementById('dieselLitresDisplay').value = litres || '';
   var cost = litres * price;
   document.getElementById('dieselCostDisplay').value = cost > 0 ? cost : '';
-  if (cost > 0) {
-    var el = document.getElementById('exp_diesel');
-    if (el) el.value = cost;
-  }
+  if (cost > 0) { var el = document.getElementById('exp_diesel'); if (el) el.value = cost; }
 }
 
 async function saveTrip() {
@@ -521,9 +625,8 @@ async function saveTrip() {
     var val = el ? parseFloat(el.value) || 0 : 0;
     if (val > 0) expenses[c.key] = val;
   });
-
-  const id = document.getElementById('tripId').value;
-  const body = {
+  var id = document.getElementById('tripId').value;
+  var body = {
     truck_id: parseInt(document.getElementById('tripTruck').value),
     trip_date: document.getElementById('tripDate').value,
     origin: document.getElementById('tripFrom').value,
@@ -536,12 +639,11 @@ async function saveTrip() {
     expenses: expenses
   };
   if (!body.origin || !body.destination || !body.distance_km || !body.fuel_litres || !body.customer_name || !body.trip_date) {
-    alert('Please fill all required fields');
-    return;
+    alert('Please fill all required fields'); return;
   }
-  const r = await api('/trips' + (id ? '/' + id : ''), { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
+  var r = await api('/trips' + (id ? '/' + id : ''), { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
   if (r && r.ok) { closeModal('tripModal'); loadTrips(); loadDashboard(); }
-  else { const d = await r.json(); alert(d.error || 'Error saving trip'); }
+  else { var d = await r.json(); alert(d.error || 'Error saving trip'); }
 }
 
 async function deleteTrip(id) {
@@ -567,12 +669,12 @@ function editTruck(id, plate, name) {
 }
 
 async function saveTruck() {
-  const id = document.getElementById('truckEditId').value;
-  const body = { plate: document.getElementById('truckPlate').value, name: document.getElementById('truckName').value };
+  var id = document.getElementById('truckEditId').value;
+  var body = { plate: document.getElementById('truckPlate').value, name: document.getElementById('truckName').value };
   if (!body.plate) { alert('Plate number is required'); return; }
-  const r = await api('/trucks' + (id ? '/' + id : ''), { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
+  var r = await api('/trucks' + (id ? '/' + id : ''), { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
   if (r && r.ok) { closeModal('truckModal'); loadTrucks(); }
-  else { const d = await r.json(); alert(d.error || 'Error'); }
+  else { var d = await r.json(); alert(d.error || 'Error'); }
 }
 
 function openUserModal() {
@@ -587,8 +689,8 @@ function openUserModal() {
 }
 
 async function saveUser() {
-  const id = document.getElementById('userEditId').value;
-  const body = {
+  var id = document.getElementById('userEditId').value;
+  var body = {
     name: document.getElementById('userFullName').value,
     username: document.getElementById('userUsername').value,
     phone: document.getElementById('userPhone').value,
@@ -596,9 +698,9 @@ async function saveUser() {
     password: document.getElementById('userPassword').value
   };
   if (!body.name || !body.username || (!id && !body.password)) { alert('Fill all required fields'); return; }
-  const r = await api('/users' + (id ? '/' + id : ''), { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
+  var r = await api('/users' + (id ? '/' + id : ''), { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
   if (r && r.ok) { closeModal('userModal'); loadUsers(); }
-  else { const d = await r.json(); alert(d.error || 'Error'); }
+  else { var d = await r.json(); alert(d.error || 'Error'); }
 }
 
 async function deleteUser(id) {
@@ -625,6 +727,7 @@ document.querySelectorAll('.modal-overlay').forEach(function(m) {
 });
 
 document.getElementById('loginPass').addEventListener('keypress', function(e) { if (e.key === 'Enter') doLogin(); });
+document.getElementById('loginUser').addEventListener('keypress', function(e) { if (e.key === 'Enter') document.getElementById('loginPass').focus(); });
 
 if (token) showApp();
 </script>
