@@ -273,8 +273,8 @@
           <input type="text" id="truckPlate" placeholder="e.g. ABC-123XY" style="width:100%;padding:14px;border:1.5px solid #ddd;border-radius:10px;font-size:16px;">
         </div>
         <div style="margin-bottom:12px;">
-          <label style="display:block;font-size:13px;color:#555;margin-bottom:4px;font-weight:600;">Truck Name</label>
-          <input type="text" id="truckName" placeholder="e.g. DAF Truck, Blue Volvo" style="width:100%;padding:14px;border:1.5px solid #ddd;border-radius:10px;font-size:16px;">
+          <label for="fld_truck_name" style="display:block;font-size:13px;color:#555;margin-bottom:4px;font-weight:600;">Truck Name</label>
+          <input type="text" id="fld_truck_name" name="truck_name_field" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="e.g. DAF Truck, Blue Volvo" style="width:100%;padding:14px;border:1.5px solid #ddd;border-radius:10px;font-size:16px;-webkit-user-select:text;user-select:text;">
         </div>
         <div style="display:flex;gap:10px;">
           <button class="btn btn-outline" onclick="toggleTruckForm()" style="flex:1;padding:14px;justify-content:center;">Cancel</button>
@@ -683,7 +683,7 @@ function toggleTruckForm() {
     document.getElementById('truckModalTitle').textContent = 'Add Truck';
     document.getElementById('truckEditId').value = '';
     document.getElementById('truckPlate').value = '';
-    document.getElementById('truckName').value = '';
+    document.getElementById('fld_truck_name').value = '';
     box.style.display = 'block';
     document.getElementById('truckPlate').focus();
   } else {
@@ -695,14 +695,14 @@ function editTruck(id, plate, name) {
   document.getElementById('truckModalTitle').textContent = 'Edit Truck';
   document.getElementById('truckEditId').value = id;
   document.getElementById('truckPlate').value = plate;
-  document.getElementById('truckName').value = name;
+  document.getElementById('fld_truck_name').value = name;
   document.getElementById('truckFormBox').style.display = 'block';
-  document.getElementById('truckName').focus();
+  document.getElementById('fld_truck_name').focus();
 }
 
 async function saveTruck() {
   var id = document.getElementById('truckEditId').value;
-  var body = { plate: document.getElementById('truckPlate').value, name: document.getElementById('truckName').value };
+  var body = { plate: document.getElementById('truckPlate').value, name: document.getElementById('fld_truck_name').value };
   if (!body.plate) { alert('Plate number is required'); return; }
   var r = await api('/trucks' + (id ? '/' + id : ''), { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
   if (r && r.ok) { document.getElementById('truckFormBox').style.display = 'none'; loadTrucks(); }
