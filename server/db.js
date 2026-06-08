@@ -10,7 +10,6 @@ db.pragma('foreign_keys = ON');
 
 const EXPENSE_CATEGORIES = [
   { key: 'diesel', label: 'Diesel' },
-  { key: 'haulage', label: 'Haulage' },
   { key: 'maintenance', label: 'Maintenance' },
   { key: 'car_wash', label: 'Car Wash' },
   { key: 'lagos_govt', label: 'Lagos Govt' },
@@ -70,6 +69,8 @@ db.exec(`
     expires_at DATETIME NOT NULL
   );
 `);
+
+try { db.exec('ALTER TABLE trips ADD COLUMN haulage REAL DEFAULT 0'); } catch(e) {}
 
 const adminExists = db.prepare('SELECT id FROM users WHERE role = ?').get('admin');
 if (!adminExists) {

@@ -319,10 +319,15 @@
     <input type="number" id="tripDistance" inputmode="decimal" step="0.1">
     <label>Fuel (litres)</label>
     <input type="number" id="tripFuel" inputmode="decimal" step="0.1" oninput="calcDiesel()">
-    <label>Charge to Customer (Naira)</label>
-    <input type="number" id="tripCharge" inputmode="decimal" step="0.01" placeholder="Amount charged">
     <label>Customer</label>
     <input type="text" id="tripCustomer" placeholder="Customer name">
+    <div style="margin-top:16px;border-top:1px solid #f0f0f0;padding-top:14px;">
+      <div class="expense-section-title" style="color:#27ae60;">Income (Naira)</div>
+      <div class="expense-grid">
+        <div class="expense-field"><label>Charge to Customer</label><input type="number" id="tripCharge" inputmode="decimal" step="0.01" placeholder="0"></div>
+        <div class="expense-field"><label>Haulage</label><input type="number" id="tripHaulage" inputmode="decimal" step="0.01" placeholder="0"></div>
+      </div>
+    </div>
     <div class="expense-section">
       <div class="expense-section-title">Expenses (Naira)</div>
       <div class="diesel-calc">
@@ -491,7 +496,8 @@ document.querySelectorAll('.bottom-nav a[data-page], .desktop-sidebar a[data-pag
 });
 
 function renderTripCard(t, showActions) {
-  var net = t.customer_charge ? fmt(t.net_profit) : '-';
+  var totalIncome = (t.customer_charge || 0) + (t.haulage || 0);
+  var net = totalIncome ? fmt(t.net_profit) : '-';
   var netColor = t.net_profit >= 0 ? '#27ae60' : '#e74c3c';
   return '<div class="trip-card">' +
     '<div class="trip-header">' +
@@ -499,10 +505,11 @@ function renderTripCard(t, showActions) {
       '<span class="trip-number">Trip #' + (t.trip_number || 1) + '</span>' +
     '</div>' +
     '<div class="trip-route">' + t.origin + ' &rarr; ' + t.destination + '</div>' +
-    '<div class="trip-details">' +
+    '<div class="trip-details" style="grid-template-columns:1fr 1fr 1fr 1fr;">' +
+      '<div class="trip-detail"><div class="dl">Income</div><div class="dv" style="color:#27ae60">' + (totalIncome ? fmt(totalIncome) : '-') + '</div></div>' +
+      '<div class="trip-detail"><div class="dl">Expenses</div><div class="dv" style="color:#e74c3c">' + (t.total_expenses ? fmt(t.total_expenses) : '-') + '</div></div>' +
+      '<div class="trip-detail"><div class="dl">Net</div><div class="dv" style="color:' + netColor + ';font-weight:700">' + net + '</div></div>' +
       '<div class="trip-detail"><div class="dl">Distance</div><div class="dv">' + fmt(t.distance_km) + ' km</div></div>' +
-      '<div class="trip-detail"><div class="dl">Charge</div><div class="dv">' + (t.customer_charge ? fmt(t.customer_charge) : '-') + '</div></div>' +
-      '<div class="trip-detail"><div class="dl">Net</div><div class="dv" style="color:' + netColor + '">' + net + '</div></div>' +
     '</div>' +
     '<div class="trip-customer">Customer: ' + (t.customer_name || '-') + '</div>' +
     (showActions && currentUser.role === 'admin' ? '<div class="trip-actions"><button class="btn btn-danger btn-sm" onclick="deleteTrip(' + t.id + ')">Delete</button></div>' : '') +
@@ -603,6 +610,7 @@ function openTripModal(trip) {
   document.getElementById('tripDistance').value = trip ? trip.distance_km : '';
   document.getElementById('tripFuel').value = trip ? trip.fuel_litres : '';
   document.getElementById('tripCharge').value = trip ? trip.customer_charge : '';
+  document.getElementById('tripHaulage').value = trip ? trip.haulage : '';
   document.getElementById('tripCustomer').value = trip ? trip.customer_name : '';
   document.getElementById('tripNotes').value = trip ? trip.notes || '' : '';
   var savedPrice = localStorage.getItem('ft_diesel_price') || '';
@@ -644,6 +652,7 @@ async function saveTrip() {
     distance_km: parseFloat(document.getElementById('tripDistance').value),
     fuel_litres: parseFloat(document.getElementById('tripFuel').value),
     customer_charge: parseFloat(document.getElementById('tripCharge').value) || 0,
+    haulage: parseFloat(document.getElementById('tripHaulage').value) || 0,
     customer_name: document.getElementById('tripCustomer').value,
     notes: document.getElementById('tripNotes').value,
     expenses: expenses

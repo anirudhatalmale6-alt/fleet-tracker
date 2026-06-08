@@ -17,7 +17,7 @@ router.get('/summary', authenticate, (req, res) => {
       COUNT(*) as total_trips,
       COALESCE(SUM(tr.distance_km), 0) as total_km,
       COALESCE(SUM(tr.fuel_litres), 0) as total_fuel,
-      COALESCE(SUM(tr.customer_charge), 0) as total_revenue,
+      COALESCE(SUM(tr.customer_charge), 0) + COALESCE(SUM(tr.haulage), 0) as total_revenue,
       CASE WHEN SUM(tr.fuel_litres) > 0 THEN ROUND(SUM(tr.distance_km) / SUM(tr.fuel_litres), 1) ELSE 0 END as avg_efficiency
     FROM trips tr WHERE 1=1 ${where}
   `).get(...params);
@@ -70,7 +70,7 @@ router.get('/by-truck', authenticate, (req, res) => {
       COUNT(tr.id) as trips,
       COALESCE(SUM(tr.distance_km), 0) as km,
       COALESCE(SUM(tr.fuel_litres), 0) as fuel,
-      COALESCE(SUM(tr.customer_charge), 0) as revenue
+      COALESCE(SUM(tr.customer_charge), 0) + COALESCE(SUM(tr.haulage), 0) as revenue
     FROM trucks t
     LEFT JOIN trips tr ON tr.truck_id = t.id ${where ? 'AND' + where.substring(4) : ''}
     WHERE t.active = 1
