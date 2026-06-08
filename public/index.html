@@ -265,21 +265,17 @@
         Trucks
         <button class="btn btn-primary btn-sm" id="btnAddTruck" onclick="toggleTruckForm()">+ Add</button>
       </div>
-      <div id="truckFormBox" class="card" style="display:none;border:2px solid #0f3460;margin-bottom:16px;">
-        <h3 id="truckModalTitle">Add Truck</h3>
+      <div id="truckFormBox" style="display:none;background:#fff;border:2px solid #0f3460;border-radius:12px;padding:20px;margin-bottom:16px;">
         <input type="hidden" id="truckEditId">
-        <div style="margin-bottom:12px;">
-          <label style="display:block;font-size:13px;color:#555;margin-bottom:4px;font-weight:600;">Plate Number</label>
-          <input type="text" id="truckPlate" placeholder="e.g. ABC-123XY" style="width:100%;padding:14px;border:1.5px solid #ddd;border-radius:10px;font-size:16px;">
-        </div>
-        <div style="margin-bottom:12px;">
-          <label style="display:block;font-size:13px;color:#555;margin-bottom:4px;font-weight:600;">Truck Name</label>
-          <input type="text" id="fld_truck_name" placeholder="e.g. DAF Truck, Blue Volvo" style="width:100%;padding:14px;border:1.5px solid #ddd;border-radius:10px;font-size:16px;">
-        </div>
-        <div style="display:flex;gap:10px;">
-          <button class="btn btn-outline" onclick="toggleTruckForm()" style="flex:1;padding:14px;justify-content:center;">Cancel</button>
-          <button class="btn btn-primary" onclick="saveTruck()" style="flex:1;padding:14px;justify-content:center;">Save</button>
-        </div>
+        <b id="truckModalTitle">Add Truck</b><br><br>
+        Plate Number:<br>
+        <input type="text" id="truckPlate" placeholder="e.g. ABC-123XY" style="width:100%;padding:15px;font-size:18px;border:2px solid #ccc;border-radius:8px;margin:5px 0 15px 0;">
+        <br>
+        Truck Name:<br>
+        <input type="text" id="fld_truck_name" placeholder="e.g. DAF Truck" style="width:100%;padding:15px;font-size:18px;border:2px solid #ccc;border-radius:8px;margin:5px 0 15px 0;">
+        <br>
+        <button onclick="saveTruck()" style="width:100%;padding:15px;font-size:16px;background:#0f3460;color:#fff;border:none;border-radius:8px;margin-bottom:8px;">Save</button>
+        <button onclick="toggleTruckForm()" style="width:100%;padding:15px;font-size:16px;background:#eee;color:#333;border:none;border-radius:8px;">Cancel</button>
       </div>
       <div id="trucksContainer"></div>
     </div>
@@ -685,7 +681,6 @@ function toggleTruckForm() {
     document.getElementById('truckPlate').value = '';
     document.getElementById('fld_truck_name').value = '';
     box.style.display = 'block';
-    document.getElementById('truckPlate').focus();
   } else {
     box.style.display = 'none';
   }
