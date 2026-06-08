@@ -265,14 +265,14 @@
         Trucks
         <button class="btn btn-primary btn-sm" id="btnAddTruck" onclick="toggleTruckForm()">+ Add</button>
       </div>
-      <div id="truckFormBox" style="display:none;background:#fff;border:2px solid #0f3460;border-radius:12px;padding:20px;margin-bottom:16px;">
+      <div id="truckFormBox" style="display:none;background:#fff;border:2px solid #0f3460;border-radius:12px;padding:20px;margin-bottom:200px;">
         <input type="hidden" id="truckEditId">
         <b id="truckModalTitle">Add Truck</b><br><br>
-        Plate Number:<br>
-        <input type="text" id="truckPlate" placeholder="e.g. ABC-123XY" style="width:100%;padding:15px;font-size:18px;border:2px solid #ccc;border-radius:8px;margin:5px 0 15px 0;">
-        <br>
         Truck Name:<br>
         <input type="text" id="fld_truck_name" placeholder="e.g. DAF Truck" style="width:100%;padding:15px;font-size:18px;border:2px solid #ccc;border-radius:8px;margin:5px 0 15px 0;">
+        <br>
+        Plate Number:<br>
+        <input type="text" id="truckPlate" placeholder="e.g. ABC-123XY" style="width:100%;padding:15px;font-size:18px;border:2px solid #ccc;border-radius:8px;margin:5px 0 15px 0;">
         <br>
         <button onclick="saveTruck()" style="width:100%;padding:15px;font-size:16px;background:#0f3460;color:#fff;border:none;border-radius:8px;margin-bottom:8px;">Save</button>
         <button onclick="toggleTruckForm()" style="width:100%;padding:15px;font-size:16px;background:#eee;color:#333;border:none;border-radius:8px;">Cancel</button>
@@ -675,14 +675,21 @@ async function deleteTrip(id) {
 
 function toggleTruckForm() {
   var box = document.getElementById('truckFormBox');
+  var fab = document.getElementById('fabAdd');
+  var bnav = document.querySelector('.bottom-nav');
   if (box.style.display === 'none') {
     document.getElementById('truckModalTitle').textContent = 'Add Truck';
     document.getElementById('truckEditId').value = '';
     document.getElementById('truckPlate').value = '';
     document.getElementById('fld_truck_name').value = '';
     box.style.display = 'block';
+    fab.style.display = 'none';
+    bnav.style.display = 'none';
+    box.scrollIntoView({behavior:'smooth'});
   } else {
     box.style.display = 'none';
+    fab.style.display = 'flex';
+    bnav.style.display = 'flex';
   }
 }
 
@@ -692,7 +699,9 @@ function editTruck(id, plate, name) {
   document.getElementById('truckPlate').value = plate;
   document.getElementById('fld_truck_name').value = name;
   document.getElementById('truckFormBox').style.display = 'block';
-  document.getElementById('fld_truck_name').focus();
+  document.getElementById('fabAdd').style.display = 'none';
+  document.querySelector('.bottom-nav').style.display = 'none';
+  document.getElementById('truckFormBox').scrollIntoView({behavior:'smooth'});
 }
 
 async function saveTruck() {
@@ -700,7 +709,7 @@ async function saveTruck() {
   var body = { plate: document.getElementById('truckPlate').value, name: document.getElementById('fld_truck_name').value };
   if (!body.plate) { alert('Plate number is required'); return; }
   var r = await api('/trucks' + (id ? '/' + id : ''), { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
-  if (r && r.ok) { document.getElementById('truckFormBox').style.display = 'none'; loadTrucks(); }
+  if (r && r.ok) { document.getElementById('truckFormBox').style.display = 'none'; document.getElementById('fabAdd').style.display = 'flex'; document.querySelector('.bottom-nav').style.display = 'flex'; loadTrucks(); }
   else { var d = await r.json(); alert(d.error || 'Error'); }
 }
 
