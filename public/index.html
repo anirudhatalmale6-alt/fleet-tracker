@@ -495,21 +495,26 @@ document.querySelectorAll('.bottom-nav a[data-page], .desktop-sidebar a[data-pag
 function renderTripCard(t, showActions) {
   var totalIncome = (t.customer_charge || 0) + (t.haulage || 0);
   var hasIncome = totalIncome > 0;
+  var expExclDriver = (t.total_expenses||0) - (t.driver_motoboy||0);
   var grossColor = t.gross_profit >= 0 ? '#27ae60' : '#e74c3c';
   var netColor = t.net_profit >= 0 ? '#27ae60' : '#e74c3c';
+
+  function row(label, value, style) { return '<div style="display:flex;justify-content:space-between;padding:4px 0;' + (style||'') + '"><span style="color:#666">' + label + '</span><span>' + value + '</span></div>'; }
+
   return '<div class="trip-card">' +
     '<div class="trip-header">' +
       '<div><span class="trip-date">' + t.trip_date + '</span> <span class="trip-truck">' + (t.truck_name || '') + ' ' + (t.truck_plate || '') + '</span></div>' +
       '<span class="trip-number">Trip #' + (t.trip_number || 1) + '</span>' +
     '</div>' +
-    '<div class="trip-route">' + t.origin + ' &rarr; ' + t.destination + '</div>' +
-    '<div class="trip-details" style="grid-template-columns:1fr 1fr;">' +
-      '<div class="trip-detail" style="text-align:left"><div class="dl">Income</div><div class="dv" style="color:#27ae60">' + (hasIncome ? fmt(totalIncome) : '-') + '</div></div>' +
-      '<div class="trip-detail" style="text-align:left"><div class="dl">Expenses (excl. Driver)</div><div class="dv" style="color:#e74c3c">' + fmt((t.total_expenses||0) - (t.driver_motoboy||0)) + '</div></div>' +
-      '<div class="trip-detail" style="text-align:left"><div class="dl">Gross Profit</div><div class="dv" style="color:' + grossColor + ';font-weight:700">' + (hasIncome ? fmt(t.gross_profit) : '-') + '</div></div>' +
-      '<div class="trip-detail" style="text-align:left"><div class="dl">Driver/Motoboy</div><div class="dv">' + fmt(t.driver_motoboy) + '</div></div>' +
-      '<div class="trip-detail" style="text-align:left"><div class="dl">Net Profit</div><div class="dv" style="color:' + netColor + ';font-weight:700">' + (hasIncome ? fmt(t.net_profit) : '-') + '</div></div>' +
-      '<div class="trip-detail" style="text-align:left"><div class="dl">Distance</div><div class="dv">' + fmt(t.distance_km) + ' km</div></div>' +
+    '<div class="trip-route">' + t.origin + ' &rarr; ' + t.destination + ' <span style="color:#888;font-size:12px;">(' + fmt(t.distance_km) + ' km)</span></div>' +
+    '<div style="margin-top:10px;font-size:14px;">' +
+      row('Gross Income (Charge + Haulage)', '<span style="color:#27ae60;font-weight:600">' + (hasIncome ? fmt(totalIncome) : '-') + '</span>') +
+      row('Total Expenses (excl. Driver)', '<span style="color:#e74c3c">' + fmt(expExclDriver) + '</span>') +
+      '<div style="border-top:1px solid #eee;margin:4px 0;"></div>' +
+      row('Gross Profit', '<span style="color:' + grossColor + ';font-weight:700">' + (hasIncome ? fmt(t.gross_profit) : '-') + '</span>') +
+      row('Driver/Motoboy', fmt(t.driver_motoboy)) +
+      '<div style="border-top:1px solid #eee;margin:4px 0;"></div>' +
+      row('Net Profit', '<span style="color:' + netColor + ';font-weight:700;font-size:16px">' + (hasIncome ? fmt(t.net_profit) : '-') + '</span>', 'padding:6px 0;') +
     '</div>' +
     '<div class="trip-customer">Customer: ' + (t.customer_name || '-') + '</div>' +
     (showActions && currentUser.role === 'admin' ? '<div class="trip-actions"><button class="btn btn-danger btn-sm" onclick="deleteTrip(' + t.id + ')">Delete</button></div>' : '') +
@@ -525,7 +530,7 @@ async function loadDashboard() {
   document.getElementById('dashStats').innerHTML =
     '<div class="stat-card"><div class="label">Trips</div><div class="value">' + stats.total_trips + '</div></div>' +
     '<div class="stat-card"><div class="label">Distance</div><div class="value">' + fmt(stats.total_km) + ' <span class="unit">km</span></div></div>' +
-    '<div class="stat-card"><div class="label">Revenue</div><div class="value">' + fmt(stats.total_revenue) + ' <span class="unit">NGN</span></div></div>' +
+    '<div class="stat-card"><div class="label">Gross Income</div><div class="value">' + fmt(stats.total_revenue) + ' <span class="unit">NGN</span></div></div>' +
     '<div class="stat-card"><div class="label">Expenses</div><div class="value">' + fmt(stats.total_expenses) + ' <span class="unit">NGN</span></div></div>' +
     '<div class="stat-card" style="border-left:3px solid ' + (stats.gross_profit >= 0 ? '#27ae60' : '#e74c3c') + '"><div class="label">Gross Profit</div><div class="value" style="color:' + (stats.gross_profit >= 0 ? '#27ae60' : '#e74c3c') + '">' + fmt(stats.gross_profit) + ' <span class="unit">NGN</span></div></div>' +
     '<div class="stat-card"><div class="label">Driver/Motoboy</div><div class="value">' + fmt(stats.driver_motoboy) + ' <span class="unit">NGN</span></div></div>' +
