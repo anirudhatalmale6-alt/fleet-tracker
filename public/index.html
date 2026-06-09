@@ -303,7 +303,7 @@
     <div class="page" id="pageReports">
       <div class="page-title">
         Reports
-        <button class="btn btn-outline btn-sm" onclick="printPage()">Print</button>
+        <div><button class="btn btn-outline btn-sm" onclick="shareReport()">WhatsApp</button> <button class="btn btn-outline btn-sm" onclick="printPage()">Print</button></div>
       </div>
       <div class="filters">
         <select id="reportTruck" style="flex:1"><option value="">All Trucks</option></select>
@@ -570,7 +570,7 @@ function renderTripCard(t, showActions) {
     '</div>' +
     '<div class="trip-customer">Customer: ' + (t.customer_name || '-') + '</div>' +
     '<div class="trip-actions" style="display:flex;justify-content:space-between;">' +
-      '<button class="btn btn-outline btn-sm" onclick="printTrip(this)">Print</button>' +
+      '<div><button class="btn btn-outline btn-sm" onclick="shareTrip(this)">WhatsApp</button> <button class="btn btn-outline btn-sm" onclick="printTrip(this)">Print</button></div>' +
       (showActions && currentUser.role === 'admin' ? '<button class="btn btn-danger btn-sm" onclick="deleteTrip(' + t.id + ')">Delete</button>' : '') +
     '</div>' +
   '</div>';
@@ -926,6 +926,63 @@ function exportCSV() {
   if (fd) url += 'from_date=' + fd + '&';
   if (td2) url += 'to_date=' + td2 + '&';
   window.open(url, '_blank');
+}
+
+function shareTrip(btn) {
+  var card = btn.closest('.trip-card');
+  var rows = card.querySelectorAll('.trip-header, .trip-route, div[style*="justify-content:space-between"]');
+  var header = card.querySelector('.trip-header');
+  var route = card.querySelector('.trip-route');
+  var customer = card.querySelector('.trip-customer');
+
+  var text = '*RENECON Fleet Tracker*\n';
+  text += '_Trip Report_\n\n';
+  if (header) {
+    var date = header.querySelector('.trip-date');
+    var truck = header.querySelector('.trip-truck');
+    var num = header.querySelector('.trip-number');
+    if (date) text += 'Date: ' + date.textContent + '\n';
+    if (truck) text += 'Truck: ' + truck.textContent.trim() + '\n';
+    if (num) text += num.textContent + '\n';
+  }
+  if (route) text += 'Route: ' + route.textContent.replace('→', '->').trim() + '\n\n';
+
+  var lines = card.querySelectorAll('div[style*="justify-content:space-between"]');
+  lines.forEach(function(line) {
+    var spans = line.querySelectorAll('span');
+    if (spans.length >= 2) {
+      text += spans[0].textContent.trim() + ': ' + spans[1].textContent.trim() + '\n';
+    }
+  });
+
+  if (customer) text += '\n' + customer.textContent.trim();
+
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+}
+
+function shareReport() {
+  var content = document.getElementById('reportContent');
+  if (!content || !content.innerHTML) { alert('Generate a report first'); return; }
+
+  var text = '*RENECON Fleet Report*\n';
+  var h3 = content.querySelector('h3');
+  if (h3) text += '_' + h3.textContent + '_\n\n';
+
+  var sections = content.querySelectorAll('div[style*="font-weight:700"][style*="color:#16213e"]');
+  sections.forEach(function(sec) {
+    text += '*' + sec.textContent + '*\n';
+    var el = sec.nextElementSibling;
+    while (el && !el.matches('div[style*="font-weight:700"][style*="color:#16213e"]')) {
+      if (el.style && el.style.display === 'flex') {
+        var spans = el.querySelectorAll('span');
+        if (spans.length >= 2) text += spans[0].textContent.trim() + ': ' + spans[1].textContent.trim() + '\n';
+      }
+      el = el.nextElementSibling;
+    }
+    text += '\n';
+  });
+
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
 }
 
 function printPage() {
