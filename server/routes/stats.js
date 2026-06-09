@@ -32,10 +32,9 @@ router.get('/summary', authenticate, (req, res) => {
 
   const by_category = {};
   let total_expenses = 0;
-  let driver_motoboy = 0;
-  expTotals.forEach(e => { by_category[e.category] = e.total; total_expenses += e.total; if (e.category === 'driver_motoboy') driver_motoboy = e.total; });
-  const expenses_excl_driver = total_expenses - driver_motoboy;
-  const gross_profit = stats.total_revenue - expenses_excl_driver;
+  expTotals.forEach(e => { by_category[e.category] = e.total; total_expenses += e.total; });
+  const gross_profit = stats.total_revenue - total_expenses;
+  const driver_motoboy = gross_profit > 0 ? Math.round(gross_profit / 3) : 0;
   const net_profit = gross_profit - driver_motoboy;
 
   res.json({

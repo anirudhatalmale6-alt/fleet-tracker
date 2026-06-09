@@ -18,7 +18,6 @@ const EXPENSE_CATEGORIES = [
   { key: 'community_gate', label: 'Community Gate Pass' },
   { key: 'road_safety', label: 'Road Safety' },
   { key: 'tickets', label: 'Tickets' },
-  { key: 'driver_motoboy', label: 'Driver/Motoboy' },
   { key: 'misc', label: 'Misc' },
 ];
 
