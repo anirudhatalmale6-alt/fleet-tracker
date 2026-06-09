@@ -6,9 +6,10 @@ const { authenticate } = require('../middleware/auth');
 const router = express.Router();
 
 router.get('/summary', authenticate, (req, res) => {
-  const { from_date, to_date } = req.query;
+  const { from_date, to_date, truck_id } = req.query;
   let where = '';
   const params = [];
+  if (truck_id) { where += ' AND tr.truck_id = ?'; params.push(truck_id); }
   if (from_date) { where += ' AND tr.trip_date >= ?'; params.push(from_date); }
   if (to_date) { where += ' AND tr.trip_date <= ?'; params.push(to_date); }
 

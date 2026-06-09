@@ -238,6 +238,7 @@
     <a href="#" data-page="dashboard" class="active">Dashboard</a>
     <a href="#" data-page="trips">Trips</a>
     <a href="#" data-page="trucks">Trucks</a>
+    <a href="#" data-page="reports">Reports</a>
     <a href="#" data-page="users" class="nav-users">Users</a>
     <div class="user-info">
       <strong id="deskUserName"></strong>
@@ -298,6 +299,21 @@
       <div id="trucksContainer"></div>
     </div>
 
+    <!-- REPORTS -->
+    <div class="page" id="pageReports">
+      <div class="page-title">
+        Reports
+        <button class="btn btn-outline btn-sm" onclick="printPage()">Print</button>
+      </div>
+      <div class="filters">
+        <select id="reportTruck" style="flex:1"><option value="">All Trucks</option></select>
+        <input type="date" id="reportFrom" style="flex:1">
+        <input type="date" id="reportTo" style="flex:1">
+        <button class="btn btn-primary btn-sm" onclick="loadReport()">Go</button>
+      </div>
+      <div id="reportContent"></div>
+    </div>
+
     <!-- USERS -->
     <div class="page" id="pageUsers">
       <div class="page-title">
@@ -324,6 +340,10 @@
     <a href="#" data-page="trucks">
       <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
       Trucks
+    </a>
+    <a href="#" data-page="reports">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      Reports
     </a>
     <a href="#" data-page="users" class="nav-users">
       <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
@@ -515,6 +535,7 @@ function switchPage(name) {
   if (name === 'dashboard') loadDashboard();
   if (name === 'trips') loadTrips();
   if (name === 'trucks') loadTrucks();
+  if (name === 'reports') loadReport();
   if (name === 'users') loadUsers();
 }
 
@@ -640,6 +661,85 @@ async function loadUsers() {
         (u.id !== currentUser.id ? '<button class="btn btn-danger btn-sm" onclick="deleteUser(' + u.id + ')">Del</button>' : '') +
       '</div></div>';
   }).join('');
+}
+
+async function loadReport() {
+  var trucksR = await api('/trucks');
+  if (trucksR && trucksR.ok) {
+    var trucks = await trucksR.json();
+    var sel = document.getElementById('reportTruck');
+    if (sel.options.length <= 1) {
+      sel.innerHTML = '<option value="">All Trucks</option>' + trucks.map(function(t) { return '<option value="' + t.id + '">' + t.name + '</option>'; }).join('');
+    }
+  }
+
+  var url = '/stats/summary?';
+  var tid = document.getElementById('reportTruck').value;
+  var fd = document.getElementById('reportFrom').value;
+  var td2 = document.getElementById('reportTo').value;
+  if (tid) url += 'truck_id=' + tid + '&';
+  if (fd) url += 'from_date=' + fd + '&';
+  if (td2) url += 'to_date=' + td2 + '&';
+
+  var tripsUrl = '/trips?';
+  if (tid) tripsUrl += 'truck_id=' + tid + '&';
+  if (fd) tripsUrl += 'from_date=' + fd + '&';
+  if (td2) tripsUrl += 'to_date=' + td2 + '&';
+
+  var [statsR, tripsR2] = await Promise.all([api(url), api(tripsUrl)]);
+  if (!statsR) return;
+  var stats = await statsR.json();
+  var trips = await tripsR2.json();
+
+  var catMap = {};
+  expenseCategories.forEach(function(c) { catMap[c.key] = c.label; });
+
+  var dateRange = '';
+  if (fd && td2) dateRange = fd + ' to ' + td2;
+  else if (fd) dateRange = 'From ' + fd;
+  else if (td2) dateRange = 'Up to ' + td2;
+  else dateRange = 'All time';
+
+  var html = '<div class="card"><h3>Summary (' + dateRange + ')</h3>';
+  html += '<div style="font-size:14px;">';
+
+  function rr(label, val, style) { return '<div style="display:flex;justify-content:space-between;padding:5px 0;' + (style||'') + '"><span>' + label + '</span><span>' + val + '</span></div>'; }
+
+  html += '<div style="font-weight:700;color:#16213e;margin-bottom:6px;">INCOME</div>';
+  html += rr('Total Price (' + stats.total_trips + ' trips)', '<span style="color:#27ae60;font-weight:600">' + fmt(stats.total_price) + '</span>');
+  if (stats.total_haulage > 0) html += rr('Total Haulage', fmt(stats.total_haulage));
+
+  html += '<div style="font-weight:700;color:#16213e;margin:12px 0 6px;">EXPENSES</div>';
+  var expCats = stats.expenses_by_category || {};
+  expenseCategories.forEach(function(c) {
+    var val = expCats[c.key] || 0;
+    if (val > 0) html += rr(c.label, '<span style="color:#e74c3c">' + fmt(val) + '</span>');
+  });
+  html += '<div style="border-top:1px solid #eee;margin:4px 0;"></div>';
+  html += rr('Total Expenses', '<span style="color:#e74c3c;font-weight:600">' + fmt(stats.total_expenses) + '</span>');
+
+  html += '<div style="font-weight:700;color:#16213e;margin:12px 0 6px;">PROFIT</div>';
+  html += rr('Gross Profit', '<span style="color:' + (stats.gross_profit >= 0 ? '#27ae60' : '#e74c3c') + ';font-weight:700">' + fmt(stats.gross_profit) + '</span>');
+  html += rr('Driver/Motoboy (1/3)', '<span style="color:#e67e22">' + fmt(stats.driver_motoboy) + '</span>');
+  html += rr('Owner (2/3)', fmt(stats.owner_share));
+  if (stats.total_haulage > 0) html += rr('+ Haulage', fmt(stats.total_haulage));
+  html += '<div style="border-top:1px solid #eee;margin:4px 0;"></div>';
+  html += rr('Owner Total', '<span style="color:' + (stats.owner_total >= 0 ? '#27ae60' : '#e74c3c') + ';font-weight:700;font-size:18px">' + fmt(stats.owner_total) + '</span>', 'padding:8px 0;');
+
+  html += '<div style="font-weight:700;color:#16213e;margin:12px 0 6px;">OTHER</div>';
+  html += rr('Total Distance', fmt(stats.total_km) + ' km');
+  html += rr('Total Fuel', fmt(stats.total_fuel) + ' L');
+  html += rr('Efficiency', (stats.avg_efficiency || 0) + ' km/L');
+
+  html += '</div></div>';
+
+  if (trips.length > 0) {
+    html += '<div style="margin-top:12px;"><div style="font-size:16px;font-weight:700;color:#16213e;margin-bottom:10px;">Trip Details</div>';
+    html += trips.map(function(t) { return renderTripCard(t, false); }).join('');
+    html += '</div>';
+  }
+
+  document.getElementById('reportContent').innerHTML = html;
 }
 
 async function openTripModal(trip) {
