@@ -617,7 +617,15 @@ async function loadUsers() {
   }).join('');
 }
 
-function openTripModal(trip) {
+async function openTripModal(trip) {
+  var tripSel = document.getElementById('tripTruck');
+  if (!tripSel.options.length) {
+    var trucksR = await api('/trucks');
+    if (trucksR && trucksR.ok) {
+      var trucks = await trucksR.json();
+      tripSel.innerHTML = trucks.map(function(t) { return '<option value="' + t.id + '">' + t.name + ' (' + t.plate + ')</option>'; }).join('');
+    }
+  }
   document.getElementById('tripModalTitle').textContent = trip ? 'Edit Trip' : 'Log Trip';
   document.getElementById('tripId').value = trip ? trip.id : '';
   document.getElementById('tripDate').value = trip ? trip.trip_date : new Date().toISOString().split('T')[0];
