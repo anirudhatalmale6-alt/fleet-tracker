@@ -337,8 +337,8 @@
     <div style="margin-top:16px;border-top:1px solid #f0f0f0;padding-top:14px;">
       <div class="expense-section-title" style="color:#27ae60;">Income (Naira)</div>
       <div class="expense-grid">
-        <div class="expense-field"><label>Charge to Customer</label><input type="number" id="tripCharge" inputmode="decimal" step="0.01" placeholder="0" oninput="calcLive()"></div>
-        <div class="expense-field"><label>Haulage</label><input type="number" id="tripHaulage" inputmode="decimal" step="0.01" placeholder="0" oninput="calcLive()"></div>
+        <div class="expense-field"><label>Price (Charge to Customer)</label><input type="number" id="tripCharge" inputmode="decimal" step="0.01" placeholder="0" oninput="calcLive()"></div>
+        <div class="expense-field"><label>Haulage (optional, to owner)</label><input type="number" id="tripHaulage" inputmode="decimal" step="0.01" placeholder="0" oninput="calcLive()"></div>
       </div>
     </div>
     <div class="expense-section">
@@ -358,13 +358,15 @@
     </div>
     <div id="liveSummary" style="margin-top:16px;padding:14px;background:#f0f7ff;border-radius:10px;border:1px solid #cce0ff;font-size:14px;">
       <div style="font-weight:700;color:#16213e;margin-bottom:8px;">Trip Summary</div>
-      <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Gross Income</span><span id="liveIncome" style="color:#27ae60;font-weight:600;">0</span></div>
+      <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Price</span><span id="livePrice" style="color:#27ae60;font-weight:600;">0</span></div>
       <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Total Expenses</span><span id="liveExpenses" style="color:#e74c3c;">0</span></div>
       <div style="border-top:1px solid #cce0ff;margin:4px 0;"></div>
       <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Gross Profit</span><span id="liveGross" style="font-weight:700;">0</span></div>
       <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Driver/Motoboy (1/3)</span><span id="liveDriver" style="color:#e67e22;">0</span></div>
+      <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Owner Share (2/3)</span><span id="liveOwner" style="font-weight:600;">0</span></div>
+      <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Haulage (to owner)</span><span id="liveHaulage" style="color:#0f3460;">0</span></div>
       <div style="border-top:1px solid #cce0ff;margin:4px 0;"></div>
-      <div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="font-weight:700;">Net Profit (Owner 2/3)</span><span id="liveNet" style="font-weight:700;font-size:16px;">0</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="font-weight:700;">Owner Total</span><span id="liveTotal" style="font-weight:700;font-size:16px;">0</span></div>
     </div>
     <label>Notes</label>
     <textarea id="tripNotes" placeholder="Optional notes"></textarea>
@@ -503,10 +505,10 @@ document.querySelectorAll('.bottom-nav a[data-page], .desktop-sidebar a[data-pag
 });
 
 function renderTripCard(t, showActions) {
-  var totalIncome = (t.customer_charge || 0) + (t.haulage || 0);
-  var hasIncome = totalIncome > 0;
+  var price = t.customer_charge || 0;
+  var haulage = t.haulage || 0;
   var grossColor = t.gross_profit >= 0 ? '#27ae60' : '#e74c3c';
-  var netColor = t.net_profit >= 0 ? '#27ae60' : '#e74c3c';
+  var ownerColor = t.owner_total >= 0 ? '#27ae60' : '#e74c3c';
 
   function row(label, value, style) { return '<div style="display:flex;justify-content:space-between;padding:4px 0;' + (style||'') + '"><span style="color:#666">' + label + '</span><span>' + value + '</span></div>'; }
 
@@ -517,13 +519,15 @@ function renderTripCard(t, showActions) {
     '</div>' +
     '<div class="trip-route">' + t.origin + ' &rarr; ' + t.destination + ' <span style="color:#888;font-size:12px;">(' + fmt(t.distance_km) + ' km)</span></div>' +
     '<div style="margin-top:10px;font-size:14px;">' +
-      row('Gross Income (Charge + Haulage)', '<span style="color:#27ae60;font-weight:600">' + (hasIncome ? fmt(totalIncome) : '-') + '</span>') +
+      row('Price', '<span style="color:#27ae60;font-weight:600">' + (price ? fmt(price) : '-') + '</span>') +
       row('Total Expenses', '<span style="color:#e74c3c">' + fmt(t.total_expenses) + '</span>') +
       '<div style="border-top:1px solid #eee;margin:4px 0;"></div>' +
-      row('Gross Profit', '<span style="color:' + grossColor + ';font-weight:700">' + (hasIncome ? fmt(t.gross_profit) : '-') + '</span>') +
+      row('Gross Profit', '<span style="color:' + grossColor + ';font-weight:700">' + fmt(t.gross_profit) + '</span>') +
       row('Driver/Motoboy (1/3)', '<span style="color:#e67e22">' + fmt(t.driver_motoboy) + '</span>') +
+      row('Owner (2/3)', fmt(t.owner_share)) +
+      (haulage > 0 ? row('Haulage (to owner)', '<span style="color:#0f3460">+ ' + fmt(haulage) + '</span>') : '') +
       '<div style="border-top:1px solid #eee;margin:4px 0;"></div>' +
-      row('Net Profit (Owner 2/3)', '<span style="color:' + netColor + ';font-weight:700;font-size:16px">' + (hasIncome ? fmt(t.net_profit) : '-') + '</span>', 'padding:6px 0;') +
+      row('Owner Total', '<span style="color:' + ownerColor + ';font-weight:700;font-size:16px">' + fmt(t.owner_total) + '</span>', 'padding:6px 0;') +
     '</div>' +
     '<div class="trip-customer">Customer: ' + (t.customer_name || '-') + '</div>' +
     (showActions && currentUser.role === 'admin' ? '<div class="trip-actions"><button class="btn btn-danger btn-sm" onclick="deleteTrip(' + t.id + ')">Delete</button></div>' : '') +
@@ -539,11 +543,11 @@ async function loadDashboard() {
   document.getElementById('dashStats').innerHTML =
     '<div class="stat-card"><div class="label">Trips</div><div class="value">' + stats.total_trips + '</div></div>' +
     '<div class="stat-card"><div class="label">Distance</div><div class="value">' + fmt(stats.total_km) + ' <span class="unit">km</span></div></div>' +
-    '<div class="stat-card"><div class="label">Gross Income</div><div class="value">' + fmt(stats.total_revenue) + ' <span class="unit">NGN</span></div></div>' +
+    '<div class="stat-card"><div class="label">Total Price</div><div class="value">' + fmt(stats.total_price) + ' <span class="unit">NGN</span></div></div>' +
     '<div class="stat-card"><div class="label">Expenses</div><div class="value">' + fmt(stats.total_expenses) + ' <span class="unit">NGN</span></div></div>' +
     '<div class="stat-card" style="border-left:3px solid ' + (stats.gross_profit >= 0 ? '#27ae60' : '#e74c3c') + '"><div class="label">Gross Profit</div><div class="value" style="color:' + (stats.gross_profit >= 0 ? '#27ae60' : '#e74c3c') + '">' + fmt(stats.gross_profit) + ' <span class="unit">NGN</span></div></div>' +
-    '<div class="stat-card"><div class="label">Driver/Motoboy</div><div class="value">' + fmt(stats.driver_motoboy) + ' <span class="unit">NGN</span></div></div>' +
-    '<div class="stat-card" style="border-left:3px solid ' + (stats.net_profit >= 0 ? '#27ae60' : '#e74c3c') + '"><div class="label">Net Profit</div><div class="value" style="color:' + (stats.net_profit >= 0 ? '#27ae60' : '#e74c3c') + '">' + fmt(stats.net_profit) + ' <span class="unit">NGN</span></div></div>' +
+    '<div class="stat-card"><div class="label">Driver (1/3)</div><div class="value">' + fmt(stats.driver_motoboy) + ' <span class="unit">NGN</span></div></div>' +
+    '<div class="stat-card" style="border-left:3px solid ' + (stats.owner_total >= 0 ? '#27ae60' : '#e74c3c') + '"><div class="label">Owner Total</div><div class="value" style="color:' + (stats.owner_total >= 0 ? '#27ae60' : '#e74c3c') + '">' + fmt(stats.owner_total) + ' <span class="unit">NGN</span></div></div>' +
     '<div class="stat-card"><div class="label">Efficiency</div><div class="value">' + (stats.avg_efficiency || 0) + ' <span class="unit">km/L</span></div></div>';
 
   var expCard = document.getElementById('dashExpenseBreakdown');
@@ -650,25 +654,27 @@ async function openTripModal(trip) {
 }
 
 function calcLive() {
-  var charge = parseFloat(document.getElementById('tripCharge').value) || 0;
+  var price = parseFloat(document.getElementById('tripCharge').value) || 0;
   var haulage = parseFloat(document.getElementById('tripHaulage').value) || 0;
-  var income = charge + haulage;
   var expenses = 0;
   expenseCategories.forEach(function(c) {
     var el = document.getElementById('exp_' + c.key);
     expenses += el ? (parseFloat(el.value) || 0) : 0;
   });
-  var gross = income - expenses;
+  var gross = price - expenses;
   var driver = gross > 0 ? Math.round(gross / 3) : 0;
-  var net = gross - driver;
+  var ownerShare = gross - driver;
+  var ownerTotal = ownerShare + haulage;
   var f = function(n) { return Number(n).toLocaleString('en-NG'); };
-  document.getElementById('liveIncome').textContent = f(income);
+  document.getElementById('livePrice').textContent = f(price);
   document.getElementById('liveExpenses').textContent = f(expenses);
   document.getElementById('liveGross').textContent = f(gross);
   document.getElementById('liveGross').style.color = gross >= 0 ? '#27ae60' : '#e74c3c';
   document.getElementById('liveDriver').textContent = f(driver);
-  document.getElementById('liveNet').textContent = f(net);
-  document.getElementById('liveNet').style.color = net >= 0 ? '#27ae60' : '#e74c3c';
+  document.getElementById('liveOwner').textContent = f(ownerShare);
+  document.getElementById('liveHaulage').textContent = haulage > 0 ? '+ ' + f(haulage) : '0';
+  document.getElementById('liveTotal').textContent = f(ownerTotal);
+  document.getElementById('liveTotal').style.color = ownerTotal >= 0 ? '#27ae60' : '#e74c3c';
 }
 
 function calcDiesel() {

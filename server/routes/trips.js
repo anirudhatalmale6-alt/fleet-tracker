@@ -18,11 +18,13 @@ function getTripsWithExpenses(trips) {
     const ex = expMap[t.id] || {};
     let total_expenses = 0;
     EXPENSE_CATEGORIES.forEach(c => { total_expenses += (ex[c.key] || 0); });
-    const total_income = (t.customer_charge || 0) + (t.haulage || 0);
-    const gross_profit = total_income - total_expenses;
+    const price = t.customer_charge || 0;
+    const haulage = t.haulage || 0;
+    const gross_profit = price - total_expenses;
     const driver_motoboy = gross_profit > 0 ? Math.round(gross_profit / 3) : 0;
-    const net_profit = gross_profit - driver_motoboy;
-    return { ...t, expenses: ex, total_expenses, total_income, gross_profit, driver_motoboy, net_profit };
+    const owner_share = gross_profit - driver_motoboy;
+    const owner_total = owner_share + haulage;
+    return { ...t, expenses: ex, total_expenses, price, haulage, gross_profit, driver_motoboy, owner_share, owner_total };
   });
 }
 
@@ -122,10 +124,10 @@ router.get('/export/csv', authenticate, (req, res) => {
 
   const trips = getTripsWithExpenses(db.prepare(sql).all(...params));
   const catHeaders = EXPENSE_CATEGORIES.map(c => c.label).join(',');
-  const header = `Date,Truck,Trip #,From,To,Distance (km),Fuel (L),Charge (₦),Haulage (₦),Total Income (₦),${catHeaders},Total Expenses (₦),Net Profit (₦),Customer,Logged By\n`;
+  const header = `Date,Truck,Trip #,From,To,Distance (km),Fuel (L),Price (₦),${catHeaders},Total Expenses (₦),Gross Profit (₦),Driver/Motoboy (₦),Owner 2/3 (₦),Haulage (₦),Owner Total (₦),Customer,Logged By\n`;
   const csv = header + trips.map(r => {
     const catValues = EXPENSE_CATEGORIES.map(c => r.expenses[c.key] || 0).join(',');
-    return `${r.trip_date},"${r.plate}",${r.trip_number || 1},"${r.origin}","${r.destination}",${r.distance_km},${r.fuel_litres},${r.customer_charge || 0},${r.haulage || 0},${r.total_income},${catValues},${r.total_expenses},${r.net_profit},"${r.customer_name}","${r.logged_by}"`;
+    return `${r.trip_date},"${r.plate}",${r.trip_number || 1},"${r.origin}","${r.destination}",${r.distance_km},${r.fuel_litres},${r.price},${catValues},${r.total_expenses},${r.gross_profit},${r.driver_motoboy},${r.owner_share},${r.haulage},${r.owner_total},"${r.customer_name}","${r.logged_by}"`;
   }).join('\n');
 
   res.setHeader('Content-Type', 'text/csv');

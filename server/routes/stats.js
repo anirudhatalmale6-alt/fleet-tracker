@@ -17,7 +17,8 @@ router.get('/summary', authenticate, (req, res) => {
       COUNT(*) as total_trips,
       COALESCE(SUM(tr.distance_km), 0) as total_km,
       COALESCE(SUM(tr.fuel_litres), 0) as total_fuel,
-      COALESCE(SUM(tr.customer_charge), 0) + COALESCE(SUM(tr.haulage), 0) as total_revenue,
+      COALESCE(SUM(tr.customer_charge), 0) as total_price,
+      COALESCE(SUM(tr.haulage), 0) as total_haulage,
       CASE WHEN SUM(tr.fuel_litres) > 0 THEN ROUND(SUM(tr.distance_km) / SUM(tr.fuel_litres), 1) ELSE 0 END as avg_efficiency
     FROM trips tr WHERE 1=1 ${where}
   `).get(...params);
@@ -33,16 +34,18 @@ router.get('/summary', authenticate, (req, res) => {
   const by_category = {};
   let total_expenses = 0;
   expTotals.forEach(e => { by_category[e.category] = e.total; total_expenses += e.total; });
-  const gross_profit = stats.total_revenue - total_expenses;
+  const gross_profit = stats.total_price - total_expenses;
   const driver_motoboy = gross_profit > 0 ? Math.round(gross_profit / 3) : 0;
-  const net_profit = gross_profit - driver_motoboy;
+  const owner_share = gross_profit - driver_motoboy;
+  const owner_total = owner_share + stats.total_haulage;
 
   res.json({
     ...stats,
     total_expenses,
-    driver_motoboy,
     gross_profit,
-    net_profit,
+    driver_motoboy,
+    owner_share,
+    owner_total,
     expenses_by_category: by_category
   });
 });
@@ -75,7 +78,8 @@ router.get('/by-truck', authenticate, (req, res) => {
       COUNT(tr.id) as trips,
       COALESCE(SUM(tr.distance_km), 0) as km,
       COALESCE(SUM(tr.fuel_litres), 0) as fuel,
-      COALESCE(SUM(tr.customer_charge), 0) + COALESCE(SUM(tr.haulage), 0) as revenue
+      COALESCE(SUM(tr.customer_charge), 0) as revenue,
+      COALESCE(SUM(tr.haulage), 0) as haulage
     FROM trucks t
     LEFT JOIN trips tr ON tr.truck_id = t.id ${where ? 'AND' + where.substring(4) : ''}
     WHERE t.active = 1
@@ -93,11 +97,13 @@ router.get('/by-truck', authenticate, (req, res) => {
   const expMap = {};
   truckExpenses.forEach(e => { expMap[e.truck_id] = e.total_expenses; });
 
-  res.json(trucks.map(t => ({
-    ...t,
-    total_expenses: expMap[t.id] || 0,
-    net_profit: t.revenue - (expMap[t.id] || 0)
-  })));
+  res.json(trucks.map(t => {
+    const exp = expMap[t.id] || 0;
+    const gross = t.revenue - exp;
+    const driver = gross > 0 ? Math.round(gross / 3) : 0;
+    const ownerShare = gross - driver;
+    return { ...t, total_expenses: exp, gross_profit: gross, driver_motoboy: driver, owner_total: ownerShare + t.haulage };
+  }));
 });
 
 module.exports = router;
