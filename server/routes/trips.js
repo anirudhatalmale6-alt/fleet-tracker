@@ -83,7 +83,7 @@ router.post('/', authenticate, requireRole('admin', 'staff'), (req, res) => {
   res.json({ id: result.lastInsertRowid, truck_plate: truck.plate, trip_number });
 });
 
-router.put('/:id', authenticate, requireRole('admin'), (req, res) => {
+router.put('/:id', authenticate, requireRole('admin', 'staff'), (req, res) => {
   const trip = db.prepare('SELECT * FROM trips WHERE id = ?').get(req.params.id);
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
 

@@ -570,7 +570,8 @@ function renderTripCard(t, showActions) {
     '</div>' +
     '<div class="trip-customer">Customer: ' + (t.customer_name || '-') + '</div>' +
     '<div class="trip-actions" style="display:flex;justify-content:space-between;">' +
-      '<div><button class="btn btn-outline btn-sm" onclick="shareTrip(this)">WhatsApp</button> <button class="btn btn-outline btn-sm" onclick="printTrip(this)">Print</button></div>' +
+      '<div><button class="btn btn-outline btn-sm" onclick="shareTrip(this)">WhatsApp</button> <button class="btn btn-outline btn-sm" onclick="printTrip(this)">Print</button>' +
+      (showActions ? ' <button class="btn btn-outline btn-sm" onclick=\'editTrip(' + JSON.stringify(t).replace(/'/g, "&#39;") + ')\'>Edit</button>' : '') + '</div>' +
       (showActions && currentUser.role === 'admin' ? '<button class="btn btn-danger btn-sm" onclick="deleteTrip(' + t.id + ')">Delete</button>' : '') +
     '</div>' +
   '</div>';
@@ -742,6 +743,10 @@ async function loadReport() {
   document.getElementById('reportContent').innerHTML = html;
 }
 
+function editTrip(tripData) {
+  openTripModal(tripData);
+}
+
 async function openTripModal(trip) {
   var tripSel = document.getElementById('tripTruck');
   if (!tripSel.options.length) {
@@ -753,6 +758,7 @@ async function openTripModal(trip) {
   }
   document.getElementById('tripModalTitle').textContent = trip ? 'Edit Trip' : 'Log Trip';
   document.getElementById('tripId').value = trip ? trip.id : '';
+  if (trip && trip.truck_id) tripSel.value = trip.truck_id;
   document.getElementById('tripDate').value = trip ? trip.trip_date : new Date().toISOString().split('T')[0];
   document.getElementById('tripFrom').value = trip ? trip.origin : '';
   document.getElementById('tripTo').value = trip ? trip.destination : '';
