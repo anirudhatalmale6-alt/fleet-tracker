@@ -35,14 +35,16 @@ router.get('/summary', authenticate, (req, res) => {
   const by_category = {};
   let total_expenses = 0;
   expTotals.forEach(e => { by_category[e.category] = e.total; total_expenses += e.total; });
+  const total_maintenance = by_category['maintenance'] || 0;
   const gross_profit = stats.total_price - total_expenses;
   const driver_motoboy = gross_profit > 0 ? Math.round(gross_profit / 3) : 0;
   const owner_share = gross_profit - driver_motoboy;
-  const owner_total = owner_share + stats.total_haulage;
+  const owner_total = owner_share + stats.total_haulage + total_maintenance;
 
   res.json({
     ...stats,
     total_expenses,
+    total_maintenance,
     gross_profit,
     driver_motoboy,
     owner_share,
@@ -95,15 +97,26 @@ router.get('/by-truck', authenticate, (req, res) => {
     GROUP BY tr.truck_id
   `).all(...params);
 
+  const truckMaintenance = db.prepare(`
+    SELECT tr.truck_id, COALESCE(SUM(te.amount), 0) as total_maintenance
+    FROM trip_expenses te
+    JOIN trips tr ON tr.id = te.trip_id
+    WHERE te.category = 'maintenance' ${where.replace(/tr\./g, 'tr.')}
+    GROUP BY tr.truck_id
+  `).all(...params);
+
   const expMap = {};
   truckExpenses.forEach(e => { expMap[e.truck_id] = e.total_expenses; });
+  const maintMap = {};
+  truckMaintenance.forEach(e => { maintMap[e.truck_id] = e.total_maintenance; });
 
   res.json(trucks.map(t => {
     const exp = expMap[t.id] || 0;
+    const maint = maintMap[t.id] || 0;
     const gross = t.revenue - exp;
     const driver = gross > 0 ? Math.round(gross / 3) : 0;
     const ownerShare = gross - driver;
-    return { ...t, total_expenses: exp, gross_profit: gross, driver_motoboy: driver, owner_total: ownerShare + t.haulage };
+    return { ...t, total_expenses: exp, gross_profit: gross, driver_motoboy: driver, owner_total: ownerShare + t.haulage + maint };
   }));
 });
 

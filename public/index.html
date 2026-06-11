@@ -269,7 +269,7 @@
         Trips
         <div><button class="btn btn-outline btn-sm" onclick="printPage()">Print</button> <button class="btn btn-outline btn-sm" onclick="exportCSV()">Export</button></div>
       </div>
-      <div class="filters">
+      <div class="filters admin-only-filter" style="display:none;">
         <select id="filterTruck" style="flex:1"><option value="">All Trucks</option></select>
         <input type="date" id="filterFrom" style="flex:1">
         <input type="date" id="filterTo" style="flex:1">
@@ -305,7 +305,7 @@
         Reports
         <div><button class="btn btn-outline btn-sm" onclick="shareReport()">WhatsApp</button> <button class="btn btn-outline btn-sm" onclick="printPage()">Print</button></div>
       </div>
-      <div class="filters">
+      <div class="filters admin-only-filter" style="display:none;">
         <select id="reportTruck" style="flex:1"><option value="">All Trucks</option></select>
         <input type="date" id="reportFrom" style="flex:1">
         <input type="date" id="reportTo" style="flex:1">
@@ -403,6 +403,7 @@
       <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Driver/Motoboy (1/3)</span><span id="liveDriver" style="color:#e67e22;">0</span></div>
       <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Owner Share (2/3)</span><span id="liveOwner" style="font-weight:600;">0</span></div>
       <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Haulage (to owner)</span><span id="liveHaulage" style="color:#0f3460;">0</span></div>
+      <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Maintenance (to owner)</span><span id="liveMaint" style="color:#0f3460;">0</span></div>
       <div style="border-top:1px solid #cce0ff;margin:4px 0;"></div>
       <div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="font-weight:700;">Owner Total</span><span id="liveTotal" style="font-weight:700;font-size:16px;">0</span></div>
     </div>
@@ -514,6 +515,7 @@ async function showApp() {
   document.querySelectorAll('.nav-users').forEach(function(el) { el.style.display = isAdmin ? '' : 'none'; });
   document.getElementById('fabAdd').style.display = canLog ? 'flex' : 'none';
   document.getElementById('btnAddTruck').style.display = isAdmin ? 'inline-flex' : 'none';
+  document.querySelectorAll('.admin-only-filter').forEach(function(el) { el.style.display = isAdmin ? 'flex' : 'none'; });
 
   const catR = await api('/trips/categories');
   if (catR && catR.ok) { expenseCategories = await catR.json(); buildExpenseFields(); }
@@ -565,6 +567,7 @@ function renderTripCard(t, showActions) {
       row('Driver/Motoboy (1/3)', '<span style="color:#e67e22">' + fmt(t.driver_motoboy) + '</span>') +
       row('Owner (2/3)', fmt(t.owner_share)) +
       (haulage > 0 ? row('Haulage (to owner)', '<span style="color:#0f3460">+ ' + fmt(haulage) + '</span>') : '') +
+      ((t.maintenance || 0) > 0 ? row('Maintenance (to owner)', '<span style="color:#0f3460">+ ' + fmt(t.maintenance) + '</span>') : '') +
       '<div style="border-top:1px solid #eee;margin:4px 0;"></div>' +
       row('Owner Total', '<span style="color:' + ownerColor + ';font-weight:700;font-size:16px">' + fmt(t.owner_total) + '</span>', 'padding:6px 0;') +
     '</div>' +
@@ -627,9 +630,28 @@ async function loadTrips() {
   const r = await api(url);
   if (!r) return;
   const trips = await r.json();
-  document.getElementById('tripsContainer').innerHTML = trips.length === 0
-    ? '<div class="empty">No trips found</div>'
-    : trips.map(function(t) { return renderTripCard(t, true); }).join('');
+  if (trips.length === 0) {
+    document.getElementById('tripsContainer').innerHTML = '<div class="empty">No trips found</div>';
+    return;
+  }
+  var grouped = {};
+  trips.forEach(function(t) {
+    var d = t.trip_date || 'Unknown';
+    if (!grouped[d]) grouped[d] = [];
+    grouped[d].push(t);
+  });
+  var html = '';
+  Object.keys(grouped).forEach(function(date) {
+    var dayTrips = grouped[date];
+    var dayTotal = dayTrips.reduce(function(s, t) { return s + (t.owner_total || 0); }, 0);
+    var dayPrice = dayTrips.reduce(function(s, t) { return s + (t.customer_charge || 0); }, 0);
+    html += '<div style="margin-top:16px;margin-bottom:8px;padding:10px 14px;background:#e8edf5;border-radius:10px;display:flex;justify-content:space-between;align-items:center;">';
+    html += '<div style="font-weight:700;color:#16213e;font-size:15px;">' + date + ' <span style="font-weight:400;color:#888;font-size:13px;">(' + dayTrips.length + ' trip' + (dayTrips.length > 1 ? 's' : '') + ')</span></div>';
+    html += '<div style="text-align:right;font-size:13px;"><div style="color:#27ae60;font-weight:600;">Price: ' + fmt(dayPrice) + '</div><div style="color:#16213e;font-weight:700;">Owner: ' + fmt(dayTotal) + '</div></div>';
+    html += '</div>';
+    html += dayTrips.map(function(t) { return renderTripCard(t, true); }).join('');
+  });
+  document.getElementById('tripsContainer').innerHTML = html;
 }
 
 async function loadTrucks() {
@@ -723,7 +745,8 @@ async function loadReport() {
   html += rr('Gross Profit', '<span style="color:' + (stats.gross_profit >= 0 ? '#27ae60' : '#e74c3c') + ';font-weight:700">' + fmt(stats.gross_profit) + '</span>');
   html += rr('Driver/Motoboy (1/3)', '<span style="color:#e67e22">' + fmt(stats.driver_motoboy) + '</span>');
   html += rr('Owner (2/3)', fmt(stats.owner_share));
-  if (stats.total_haulage > 0) html += rr('+ Haulage', fmt(stats.total_haulage));
+  if (stats.total_haulage > 0) html += rr('+ Haulage', '<span style="color:#0f3460">' + fmt(stats.total_haulage) + '</span>');
+  if (stats.total_maintenance > 0) html += rr('+ Maintenance', '<span style="color:#0f3460">' + fmt(stats.total_maintenance) + '</span>');
   html += '<div style="border-top:1px solid #eee;margin:4px 0;"></div>';
   html += rr('Owner Total', '<span style="color:' + (stats.owner_total >= 0 ? '#27ae60' : '#e74c3c') + ';font-weight:700;font-size:18px">' + fmt(stats.owner_total) + '</span>', 'padding:8px 0;');
 
@@ -736,7 +759,21 @@ async function loadReport() {
 
   if (trips.length > 0) {
     html += '<div style="margin-top:12px;"><div style="font-size:16px;font-weight:700;color:#16213e;margin-bottom:10px;">Trip Details</div>';
-    html += trips.map(function(t) { return renderTripCard(t, false); }).join('');
+    var rGrouped = {};
+    trips.forEach(function(t) {
+      var d = t.trip_date || 'Unknown';
+      if (!rGrouped[d]) rGrouped[d] = [];
+      rGrouped[d].push(t);
+    });
+    Object.keys(rGrouped).forEach(function(date) {
+      var dayTrips = rGrouped[date];
+      var dayTotal = dayTrips.reduce(function(s, t) { return s + (t.owner_total || 0); }, 0);
+      html += '<div style="margin-top:12px;margin-bottom:6px;padding:8px 12px;background:#e8edf5;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">';
+      html += '<span style="font-weight:700;color:#16213e;font-size:14px;">' + date + ' (' + dayTrips.length + ' trip' + (dayTrips.length > 1 ? 's' : '') + ')</span>';
+      html += '<span style="font-weight:700;color:#16213e;font-size:14px;">Owner: ' + fmt(dayTotal) + '</span>';
+      html += '</div>';
+      html += dayTrips.map(function(t) { return renderTripCard(t, false); }).join('');
+    });
     html += '</div>';
   }
 
@@ -784,14 +821,17 @@ function calcLive() {
   var price = parseFloat(document.getElementById('tripCharge').value) || 0;
   var haulage = parseFloat(document.getElementById('tripHaulage').value) || 0;
   var expenses = 0;
+  var maintenance = 0;
   expenseCategories.forEach(function(c) {
     var el = document.getElementById('exp_' + c.key);
-    expenses += el ? (parseFloat(el.value) || 0) : 0;
+    var val = el ? (parseFloat(el.value) || 0) : 0;
+    expenses += val;
+    if (c.key === 'maintenance') maintenance = val;
   });
   var gross = price - expenses;
   var driver = gross > 0 ? Math.round(gross / 3) : 0;
   var ownerShare = gross - driver;
-  var ownerTotal = ownerShare + haulage;
+  var ownerTotal = ownerShare + haulage + maintenance;
   var f = function(n) { return Number(n).toLocaleString('en-NG'); };
   document.getElementById('livePrice').textContent = f(price);
   document.getElementById('liveExpenses').textContent = f(expenses);
@@ -800,6 +840,7 @@ function calcLive() {
   document.getElementById('liveDriver').textContent = f(driver);
   document.getElementById('liveOwner').textContent = f(ownerShare);
   document.getElementById('liveHaulage').textContent = haulage > 0 ? '+ ' + f(haulage) : '0';
+  document.getElementById('liveMaint').textContent = maintenance > 0 ? '+ ' + f(maintenance) : '0';
   document.getElementById('liveTotal').textContent = f(ownerTotal);
   document.getElementById('liveTotal').style.color = ownerTotal >= 0 ? '#27ae60' : '#e74c3c';
 }

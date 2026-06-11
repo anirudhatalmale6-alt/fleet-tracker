@@ -1,14 +1,19 @@
 #!/bin/bash
-# Fleet Tracker keepalive script
-# Checks and restarts the app and tunnel if they're down
+LOGFILE="$HOME/fleet-keepalive.log"
+export XDG_RUNTIME_DIR="/run/user/$(id -u)"
 
-# App check
-if ! curl -s -o /dev/null -w "" http://localhost:8080 2>/dev/null; then
-  PORT=8080 node /var/lib/freelancer/projects/40336233/fleet-tracker/server/index.js &
+# Check fleet tracker app via systemd
+APP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://localhost:8080 2>/dev/null)
+if [ "$APP_STATUS" != "200" ]; then
+  echo "$(date) - App down (status: $APP_STATUS), restarting systemd service..." >> "$LOGFILE"
+  systemctl --user restart fleet-tracker.service 2>> "$LOGFILE"
+  sleep 3
 fi
 
-# Tunnel check
-if ! pgrep -f "cloudflared.*tunnel.*run" > /dev/null 2>&1; then
-  TUNNEL_TOKEN="eyJhIjoiY2VlODQ5ZDNhY2M5ZjhlNGRkOGJhOWY3NzNmNWQxYzIiLCJ0IjoiYzM0YTM2MTMtNWY0ZS00Mzk1LTk2ZGMtYjdkMWRiYjVkYzhkIiwicyI6IkpwcHdYdUJIUE9XZlpmZzdoWFQ1SnY5VVlOVmd4K0Z6dlBQc21Kd3VuS3c9In0="
-  /tmp/cloudflared tunnel run --token "$TUNNEL_TOKEN" > /dev/null 2>&1 &
+# Check tunnel via systemd
+TUNNEL_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://fleet.renecon.com 2>/dev/null)
+if [ "$TUNNEL_STATUS" != "200" ]; then
+  echo "$(date) - Tunnel down (status: $TUNNEL_STATUS), restarting systemd service..." >> "$LOGFILE"
+  systemctl --user restart fleet-tunnel.service 2>> "$LOGFILE"
+  sleep 5
 fi
