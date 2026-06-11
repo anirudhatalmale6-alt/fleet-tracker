@@ -210,7 +210,10 @@
     <p>Log in to manage your fleet</p>
     <div class="login-error" id="loginError"></div>
     <input type="text" id="loginUser" placeholder="Username" autocomplete="username">
-    <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password">
+    <div style="position:relative;">
+      <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password" style="padding-right:50px;">
+      <button type="button" onclick="togglePwdVis('loginPass', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#888;font-size:13px;font-weight:600;cursor:pointer;padding:4px 8px;">SHOW</button>
+    </div>
     <button onclick="doLogin()">Log In</button>
   </div>
 </div>
@@ -229,6 +232,7 @@
       <strong id="menuUserName"></strong>
       <span id="menuUserRole"></span>
     </div>
+    <a href="#" onclick="openChangePwd();return false;">Change Password</a>
     <a href="#" class="um-logout" onclick="doLogout();return false;">Log Out</a>
   </div>
 
@@ -448,6 +452,30 @@
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeModal('userModal')">Cancel</button>
       <button class="btn btn-primary" onclick="saveUser()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHANGE PASSWORD MODAL -->
+<div class="modal-overlay" id="pwdModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>Change Password</h3>
+    <input type="hidden" id="pwdUserId">
+    <div id="pwdUserLabel" style="font-size:14px;color:#666;margin-bottom:10px;"></div>
+    <label>New Password</label>
+    <div style="position:relative;">
+      <input type="password" id="pwdNew" placeholder="Enter new password" style="padding-right:60px;">
+      <button type="button" onclick="togglePwdVis('pwdNew', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#888;font-size:13px;font-weight:600;cursor:pointer;padding:4px 8px;">SHOW</button>
+    </div>
+    <label>Confirm Password</label>
+    <div style="position:relative;">
+      <input type="password" id="pwdConfirm" placeholder="Confirm new password" style="padding-right:60px;">
+      <button type="button" onclick="togglePwdVis('pwdConfirm', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#888;font-size:13px;font-weight:600;cursor:pointer;padding:4px 8px;">SHOW</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('pwdModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="changePwd()">Change Password</button>
     </div>
   </div>
 </div>
@@ -743,8 +771,9 @@ async function loadUsers() {
   document.getElementById('usersContainer').innerHTML = users.map(function(u) {
     return '<div class="user-card">' +
       '<div class="ui"><h4>' + u.name + '</h4><p>@' + u.username + (u.phone ? ' | ' + u.phone : '') + '</p></div>' +
-      '<div style="display:flex;align-items:center;gap:8px;">' +
+      '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
         '<span class="badge badge-' + u.role + '">' + u.role + '</span>' +
+        '<button class="btn btn-outline btn-sm" onclick="openChangePwd(' + u.id + ',\'' + u.name.replace(/'/g, "\\'") + '\')">Reset Pwd</button>' +
         (u.id !== currentUser.id ? '<button class="btn btn-danger btn-sm" onclick="deleteUser(' + u.id + ')">Del</button>' : '') +
       '</div></div>';
   }).join('');
@@ -1021,6 +1050,34 @@ async function deleteUser(id) {
   if (!confirm('Delete this user?')) return;
   await api('/users/' + id, { method: 'DELETE' });
   loadUsers();
+}
+
+function togglePwdVis(inputId, btn) {
+  var inp = document.getElementById(inputId);
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = 'HIDE'; }
+  else { inp.type = 'password'; btn.textContent = 'SHOW'; }
+}
+
+function openChangePwd(userId, userName) {
+  document.getElementById('userMenu').classList.remove('open');
+  var id = userId || (currentUser && currentUser.id);
+  var name = userName || (currentUser && currentUser.name);
+  document.getElementById('pwdUserId').value = id;
+  document.getElementById('pwdUserLabel').textContent = 'Changing password for: ' + name;
+  document.getElementById('pwdNew').value = '';
+  document.getElementById('pwdConfirm').value = '';
+  document.getElementById('pwdModal').classList.add('open');
+}
+
+async function changePwd() {
+  var id = document.getElementById('pwdUserId').value;
+  var pw = document.getElementById('pwdNew').value;
+  var pw2 = document.getElementById('pwdConfirm').value;
+  if (!pw || pw.length < 4) { alert('Password must be at least 4 characters'); return; }
+  if (pw !== pw2) { alert('Passwords do not match'); return; }
+  var r = await api('/users/' + id, { method: 'PUT', body: JSON.stringify({ password: pw }) });
+  if (r && r.ok) { alert('Password changed successfully'); closeModal('pwdModal'); }
+  else { var d = await r.json(); alert(d.error || 'Error changing password'); }
 }
 
 function exportCSV() {
