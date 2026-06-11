@@ -272,6 +272,7 @@
       <div style="background:#e8edf5;border:2px solid #0f3460;border-radius:12px;padding:14px;margin-bottom:14px;">
         <div style="font-weight:700;color:#0f3460;font-size:14px;margin-bottom:10px;">FILTER</div>
         <select id="filterTruck" style="width:100%;padding:12px;font-size:16px;border:2px solid #ccc;border-radius:8px;margin-bottom:8px;background:#fff;"><option value="">All Trucks</option></select>
+        <select id="filterCategory" style="width:100%;padding:12px;font-size:16px;border:2px solid #ccc;border-radius:8px;margin-bottom:8px;background:#fff;"><option value="">All Expenses</option></select>
         <div style="display:flex;gap:8px;margin-bottom:8px;">
           <input type="date" id="filterFrom" style="flex:1;padding:12px;font-size:16px;border:2px solid #ccc;border-radius:8px;background:#fff;" placeholder="From Date">
           <input type="date" id="filterTo" style="flex:1;padding:12px;font-size:16px;border:2px solid #ccc;border-radius:8px;background:#fff;" placeholder="To Date">
@@ -311,6 +312,7 @@
       <div style="background:#e8edf5;border:2px solid #0f3460;border-radius:12px;padding:14px;margin-bottom:14px;">
         <div style="font-weight:700;color:#0f3460;font-size:14px;margin-bottom:10px;">FILTER</div>
         <select id="reportTruck" style="width:100%;padding:12px;font-size:16px;border:2px solid #ccc;border-radius:8px;margin-bottom:8px;background:#fff;"><option value="">All Trucks</option></select>
+        <select id="reportCategory" style="width:100%;padding:12px;font-size:16px;border:2px solid #ccc;border-radius:8px;margin-bottom:8px;background:#fff;"><option value="">All Expenses</option></select>
         <div style="display:flex;gap:8px;margin-bottom:8px;">
           <input type="date" id="reportFrom" style="flex:1;padding:12px;font-size:16px;border:2px solid #ccc;border-radius:8px;background:#fff;" placeholder="From Date">
           <input type="date" id="reportTo" style="flex:1;padding:12px;font-size:16px;border:2px solid #ccc;border-radius:8px;background:#fff;" placeholder="To Date">
@@ -532,6 +534,12 @@ function buildExpenseFields() {
   document.getElementById('expenseFields').innerHTML = expenseCategories.map(function(c) {
     return '<div class="expense-field"><label>' + c.label + '</label><input type="number" id="exp_' + c.key + '" inputmode="decimal" step="0.01" placeholder="0" oninput="calcLive()"></div>';
   }).join('');
+  var catOpts = '<option value="">All Expenses</option>' + expenseCategories.map(function(c) {
+    return '<option value="' + c.key + '">' + c.label + '</option>';
+  }).join('');
+  catOpts += '<option value="price">Price (Income)</option><option value="haulage">Haulage</option><option value="gross_profit">Gross Profit</option><option value="driver_motoboy">Driver/Motoboy</option><option value="owner_total">Owner Total</option>';
+  var fc = document.getElementById('filterCategory'); if (fc) fc.innerHTML = catOpts;
+  var rc = document.getElementById('reportCategory'); if (rc) rc.innerHTML = catOpts;
 }
 
 function switchPage(name) {
@@ -617,7 +625,7 @@ async function loadDashboard() {
     : renderTripsGroupedByDay(trips, false);
 }
 
-function renderTripsGroupedByDay(trips, showActions) {
+function renderTripsGroupedByDay(trips, showActions, catKey) {
   var grouped = {};
   trips.forEach(function(t) {
     var d = t.trip_date || 'Unknown';
@@ -631,9 +639,27 @@ function renderTripsGroupedByDay(trips, showActions) {
     var dayPrice = dayTrips.reduce(function(s, t) { return s + (t.customer_charge || 0); }, 0);
     html += '<div style="margin-top:14px;margin-bottom:8px;padding:10px 14px;background:#e8edf5;border-radius:10px;display:flex;justify-content:space-between;align-items:center;">';
     html += '<div style="font-weight:700;color:#16213e;font-size:15px;">' + date + ' <span style="font-weight:400;color:#888;font-size:13px;">(' + dayTrips.length + ' trip' + (dayTrips.length > 1 ? 's' : '') + ')</span></div>';
-    html += '<div style="text-align:right;font-size:13px;"><div style="color:#27ae60;font-weight:600;">Price: ' + fmt(dayPrice) + '</div><div style="color:#16213e;font-weight:700;">Owner: ' + fmt(dayTotal) + '</div></div>';
+    if (catKey) {
+      var dayCatTotal = dayTrips.reduce(function(s, t) { return s + getCatValue(t, catKey); }, 0);
+      html += '<div style="text-align:right;font-size:13px;"><div style="color:#856404;font-weight:700;">' + getCatLabel(catKey) + ': ' + fmt(dayCatTotal) + '</div></div>';
+    } else {
+      html += '<div style="text-align:right;font-size:13px;"><div style="color:#27ae60;font-weight:600;">Price: ' + fmt(dayPrice) + '</div><div style="color:#16213e;font-weight:700;">Owner: ' + fmt(dayTotal) + '</div></div>';
+    }
     html += '</div>';
-    html += dayTrips.map(function(t) { return renderTripCard(t, showActions); }).join('');
+    if (catKey) {
+      html += dayTrips.map(function(t) {
+        var val = getCatValue(t, catKey);
+        return '<div class="trip-card">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+            '<div><span style="font-size:12px;color:#888;">' + t.trip_date + '</span> <span style="font-size:12px;color:#999;">' + (t.truck_name || '') + '</span><br>' +
+            '<span style="font-weight:600;color:#16213e;">' + t.origin + ' &rarr; ' + t.destination + '</span><br>' +
+            '<span style="font-size:12px;color:#666;">Customer: ' + (t.customer_name || '-') + '</span></div>' +
+            '<div style="text-align:right;"><div style="font-size:20px;font-weight:700;color:' + (val > 0 ? '#e74c3c' : '#888') + ';">' + fmt(val) + '</div></div>' +
+          '</div></div>';
+      }).join('');
+    } else {
+      html += dayTrips.map(function(t) { return renderTripCard(t, showActions); }).join('');
+    }
   });
   return html;
 }
@@ -656,9 +682,40 @@ async function loadTrips() {
   const r = await api(url);
   if (!r) return;
   const trips = await r.json();
-  document.getElementById('tripsContainer').innerHTML = trips.length === 0
-    ? '<div class="empty">No trips found</div>'
-    : renderTripsGroupedByDay(trips, true);
+  var catKey = document.getElementById('filterCategory').value;
+  if (trips.length === 0) {
+    document.getElementById('tripsContainer').innerHTML = '<div class="empty">No trips found</div>';
+    return;
+  }
+  var html = '';
+  if (catKey) {
+    var catLabel = getCatLabel(catKey);
+    var catTotal = trips.reduce(function(s, t) { return s + getCatValue(t, catKey); }, 0);
+    html += '<div style="background:#fff3cd;border:2px solid #ffc107;border-radius:10px;padding:12px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">';
+    html += '<span style="font-weight:700;color:#856404;">Showing: ' + catLabel + '</span>';
+    html += '<span style="font-weight:700;color:#856404;font-size:18px;">' + fmt(catTotal) + '</span>';
+    html += '</div>';
+  }
+  html += renderTripsGroupedByDay(trips, true, catKey);
+  document.getElementById('tripsContainer').innerHTML = html;
+}
+
+function getCatLabel(key) {
+  var labels = { price: 'Price (Income)', haulage: 'Haulage', gross_profit: 'Gross Profit', driver_motoboy: 'Driver/Motoboy', owner_total: 'Owner Total' };
+  if (labels[key]) return labels[key];
+  for (var i = 0; i < expenseCategories.length; i++) {
+    if (expenseCategories[i].key === key) return expenseCategories[i].label;
+  }
+  return key;
+}
+
+function getCatValue(trip, key) {
+  if (key === 'price') return trip.customer_charge || 0;
+  if (key === 'haulage') return trip.haulage || 0;
+  if (key === 'gross_profit') return trip.gross_profit || 0;
+  if (key === 'driver_motoboy') return trip.driver_motoboy || 0;
+  if (key === 'owner_total') return trip.owner_total || 0;
+  return (trip.expenses && trip.expenses[key]) || 0;
 }
 
 async function loadTrucks() {
@@ -707,6 +764,7 @@ async function loadReport() {
   var tid = document.getElementById('reportTruck').value;
   var fd = document.getElementById('reportFrom').value;
   var td2 = document.getElementById('reportTo').value;
+  var reportCatKey = document.getElementById('reportCategory').value;
   if (tid) url += 'truck_id=' + tid + '&';
   if (fd) url += 'from_date=' + fd + '&';
   if (td2) url += 'to_date=' + td2 + '&';
@@ -745,7 +803,8 @@ async function loadReport() {
   expenseCategories.forEach(function(c) {
     var val = expCats[c.key] || 0;
     var color = val > 0 ? '#e74c3c' : '#ccc';
-    html += '<div style="display:flex;justify-content:space-between;padding:6px 10px;background:#f8f9fa;border-radius:6px;font-size:13px;">';
+    var bg = (reportCatKey === c.key) ? '#fff3cd;border:2px solid #ffc107' : '#f8f9fa';
+    html += '<div style="display:flex;justify-content:space-between;padding:6px 10px;background:' + bg + ';border-radius:6px;font-size:13px;">';
     html += '<span style="color:#555;">' + c.label + '</span>';
     html += '<span style="color:' + color + ';font-weight:600;">' + fmt(val) + '</span>';
     html += '</div>';
@@ -771,8 +830,9 @@ async function loadReport() {
   html += '</div></div>';
 
   if (trips.length > 0) {
-    html += '<div style="margin-top:12px;"><div style="font-size:16px;font-weight:700;color:#16213e;margin-bottom:10px;">Trip Details</div>';
-    html += renderTripsGroupedByDay(trips, false);
+    var detailTitle = reportCatKey ? getCatLabel(reportCatKey) + ' - Per Trip' : 'Trip Details';
+    html += '<div style="margin-top:12px;"><div style="font-size:16px;font-weight:700;color:#16213e;margin-bottom:10px;">' + detailTitle + '</div>';
+    html += renderTripsGroupedByDay(trips, false, reportCatKey);
     html += '</div>';
   }
 
