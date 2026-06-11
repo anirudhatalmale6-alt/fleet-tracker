@@ -126,6 +126,8 @@
     /* FILTERS */
     .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
     .filters select, .filters input { padding: 10px 12px; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 14px; -webkit-appearance: none; }
+    .admin-only-filter { display: none !important; }
+    body.is-admin .admin-only-filter { display: flex !important; }
 
     /* BADGES */
     .badge { padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
@@ -269,7 +271,7 @@
         Trips
         <div><button class="btn btn-outline btn-sm" onclick="printPage()">Print</button> <button class="btn btn-outline btn-sm" onclick="exportCSV()">Export</button></div>
       </div>
-      <div class="filters admin-only-filter" style="display:none;">
+      <div class="filters admin-only-filter">
         <select id="filterTruck" style="flex:1"><option value="">All Trucks</option></select>
         <input type="date" id="filterFrom" style="flex:1">
         <input type="date" id="filterTo" style="flex:1">
@@ -305,7 +307,7 @@
         Reports
         <div><button class="btn btn-outline btn-sm" onclick="shareReport()">WhatsApp</button> <button class="btn btn-outline btn-sm" onclick="printPage()">Print</button></div>
       </div>
-      <div class="filters admin-only-filter" style="display:none;">
+      <div class="filters admin-only-filter">
         <select id="reportTruck" style="flex:1"><option value="">All Trucks</option></select>
         <input type="date" id="reportFrom" style="flex:1">
         <input type="date" id="reportTo" style="flex:1">
@@ -480,6 +482,7 @@ async function doLogin() {
 function doLogout() {
   token = null; currentUser = null;
   localStorage.removeItem('ft_token');
+  document.body.classList.remove('is-admin');
   document.getElementById('app').style.display = 'none';
   document.getElementById('loginPage').style.display = 'flex';
   document.getElementById('userMenu').classList.remove('open');
@@ -515,7 +518,7 @@ async function showApp() {
   document.querySelectorAll('.nav-users').forEach(function(el) { el.style.display = isAdmin ? '' : 'none'; });
   document.getElementById('fabAdd').style.display = canLog ? 'flex' : 'none';
   document.getElementById('btnAddTruck').style.display = isAdmin ? 'inline-flex' : 'none';
-  document.querySelectorAll('.admin-only-filter').forEach(function(el) { el.style.display = isAdmin ? 'flex' : 'none'; });
+  if (isAdmin) { document.body.classList.add('is-admin'); } else { document.body.classList.remove('is-admin'); }
 
   const catR = await api('/trips/categories');
   if (catR && catR.ok) { expenseCategories = await catR.json(); buildExpenseFields(); }
