@@ -269,11 +269,14 @@
         Trips
         <div><button class="btn btn-outline btn-sm" onclick="printPage()">Print</button> <button class="btn btn-outline btn-sm" onclick="exportCSV()">Export</button></div>
       </div>
-      <div class="filters">
-        <select id="filterTruck" style="flex:1"><option value="">All Trucks</option></select>
-        <input type="date" id="filterFrom" style="flex:1">
-        <input type="date" id="filterTo" style="flex:1">
-        <button class="btn btn-primary btn-sm" onclick="loadTrips()">Go</button>
+      <div style="background:#e8edf5;border:2px solid #0f3460;border-radius:12px;padding:14px;margin-bottom:14px;">
+        <div style="font-weight:700;color:#0f3460;font-size:14px;margin-bottom:10px;">FILTER</div>
+        <select id="filterTruck" style="width:100%;padding:12px;font-size:16px;border:2px solid #ccc;border-radius:8px;margin-bottom:8px;background:#fff;"><option value="">All Trucks</option></select>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <input type="date" id="filterFrom" style="flex:1;padding:12px;font-size:16px;border:2px solid #ccc;border-radius:8px;background:#fff;" placeholder="From Date">
+          <input type="date" id="filterTo" style="flex:1;padding:12px;font-size:16px;border:2px solid #ccc;border-radius:8px;background:#fff;" placeholder="To Date">
+        </div>
+        <button onclick="loadTrips()" style="width:100%;padding:12px;font-size:16px;font-weight:700;background:#0f3460;color:#fff;border:none;border-radius:8px;">Apply Filter</button>
       </div>
       <div id="tripsContainer"></div>
     </div>
@@ -305,11 +308,14 @@
         Reports
         <div><button class="btn btn-outline btn-sm" onclick="shareReport()">WhatsApp</button> <button class="btn btn-outline btn-sm" onclick="printPage()">Print</button></div>
       </div>
-      <div class="filters">
-        <select id="reportTruck" style="flex:1"><option value="">All Trucks</option></select>
-        <input type="date" id="reportFrom" style="flex:1">
-        <input type="date" id="reportTo" style="flex:1">
-        <button class="btn btn-primary btn-sm" onclick="loadReport()">Go</button>
+      <div style="background:#e8edf5;border:2px solid #0f3460;border-radius:12px;padding:14px;margin-bottom:14px;">
+        <div style="font-weight:700;color:#0f3460;font-size:14px;margin-bottom:10px;">FILTER</div>
+        <select id="reportTruck" style="width:100%;padding:12px;font-size:16px;border:2px solid #ccc;border-radius:8px;margin-bottom:8px;background:#fff;"><option value="">All Trucks</option></select>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <input type="date" id="reportFrom" style="flex:1;padding:12px;font-size:16px;border:2px solid #ccc;border-radius:8px;background:#fff;" placeholder="From Date">
+          <input type="date" id="reportTo" style="flex:1;padding:12px;font-size:16px;border:2px solid #ccc;border-radius:8px;background:#fff;" placeholder="To Date">
+        </div>
+        <button onclick="loadReport()" style="width:100%;padding:12px;font-size:16px;font-weight:700;background:#0f3460;color:#fff;border:none;border-radius:8px;">Apply Filter</button>
       </div>
       <div id="reportContent"></div>
     </div>
