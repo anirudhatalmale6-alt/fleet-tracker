@@ -262,7 +262,7 @@
         <div id="dashExpenseDetails" class="exp-grid"></div>
       </div>
       <div style="margin-top:12px">
-        <div class="page-title" style="font-size:16px">Recent Trips</div>
+        <div class="page-title" style="font-size:16px" id="dashTripsTitle">Today's Trips</div>
         <div id="dashTrips"></div>
       </div>
     </div>
@@ -555,6 +555,12 @@ async function showApp() {
   const catR = await api('/trips/categories');
   if (catR && catR.ok) { expenseCategories = await catR.json(); buildExpenseFields(); }
 
+  var today = new Date().toISOString().split('T')[0];
+  document.getElementById('filterFrom').value = today;
+  document.getElementById('filterTo').value = today;
+  document.getElementById('reportFrom').value = today;
+  document.getElementById('reportTo').value = today;
+
   loadDashboard();
 }
 
@@ -622,7 +628,8 @@ function renderTripCard(t, showActions) {
 }
 
 async function loadDashboard() {
-  const [statsR, tripsR] = await Promise.all([api('/stats/summary'), api('/trips?limit=5')]);
+  var today = new Date().toISOString().split('T')[0];
+  const [statsR, tripsR] = await Promise.all([api('/stats/summary?from_date=' + today + '&to_date=' + today), api('/trips?from_date=' + today + '&to_date=' + today)]);
   if (!statsR) return;
   const stats = await statsR.json();
   const trips = await tripsR.json();
@@ -649,7 +656,7 @@ async function loadDashboard() {
   } else { expCard.style.display = 'none'; }
 
   document.getElementById('dashTrips').innerHTML = trips.length === 0
-    ? '<div class="empty">No trips yet. Tap + to log your first trip.</div>'
+    ? '<div class="empty">No trips logged today. Tap + to log a trip.</div>'
     : renderTripsGroupedByDay(trips, false);
 }
 
