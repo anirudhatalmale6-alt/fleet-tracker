@@ -1,11 +1,11 @@
 {
-  "name": "project",
+  "name": "fleet-tracker",
   "version": "1.0.0",
   "description": "Truck Fleet Tracker with WhatsApp bot and web dashboard",
   "main": "server/index.js",
   "scripts": {
-    "build": "node canary.js && tsc",
-    "prepare": "node canary.js"
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
   },
   "dependencies": {
     "express": "^4.21.0",
